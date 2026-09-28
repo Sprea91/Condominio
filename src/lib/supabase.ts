@@ -1,6 +1,6 @@
 // Client Supabase unico per tutta l'app (schema ufficiale della guida Expo).
-// La sessione di login viene salvata sul telefono tramite expo-sqlite.
-import 'expo-sqlite/localStorage/install';
+// La sessione di login viene salvata in "localStorage" (vedi sessione.ts / sessione.native.ts).
+import './sessione';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
