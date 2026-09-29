@@ -20,7 +20,7 @@ type Dati = { emissione: EmissioneRate; rate: Rata[] };
 export default function DettaglioRata() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const tinte = useTinte();
-  const [registraNelConto, setRegistraNelConto] = useState(true);
+  const [registraNelConto, setRegistraNelConto] = useState(false);
   const [inCorso, setInCorso] = useState<string | null>(null);
   const [erroreAzione, setErroreAzione] = useState('');
 
