@@ -5,6 +5,7 @@ import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Button, SegmentedButtons, Text, TextInput, useTheme } from 'react-native-paper';
 
+import { CampoData } from '@/components/CampoData';
 import { Pagina } from '@/components/Pagina';
 import { Errore, Nota, Riquadro } from '@/components/ui';
 import { euro, leggiData, leggiNumero, millesimi } from '@/lib/formato';
@@ -84,14 +85,7 @@ export default function NuovaRata() {
     <Pagina titolo="Nuova rata" sottotitolo="Ogni condòmino vedrà solo la propria quota">
       <Riquadro>
         <TextInput label="Titolo (es. Rata 1° trimestre 2026)" mode="outlined" value={titolo} onChangeText={setTitolo} />
-        <TextInput
-          label="Scadenza (gg/mm/aaaa)"
-          mode="outlined"
-          value={scadenza}
-          onChangeText={setScadenza}
-          keyboardType="numbers-and-punctuation"
-          left={<TextInput.Icon icon="calendar" />}
-        />
+        <CampoData label="Scadenza" value={scadenza} onChangeText={setScadenza} />
         <TextInput label="Note (facoltative)" mode="outlined" value={note} onChangeText={setNote} />
       </Riquadro>
 

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
 
+import { CampoData } from '@/components/CampoData';
 import { Pagina } from '@/components/Pagina';
 import { SceltaFile } from '@/components/SceltaFile';
 import { Errore, Nota, Riquadro } from '@/components/ui';
@@ -86,14 +87,7 @@ export default function NuovoLavoro() {
           numberOfLines={4}
         />
         <View style={styles.riga}>
-          <TextInput
-            style={styles.flex}
-            label="Data (gg/mm/aaaa)"
-            mode="outlined"
-            value={giorno}
-            onChangeText={setGiorno}
-            keyboardType="numbers-and-punctuation"
-          />
+          <CampoData style={styles.flex} label="Data" value={giorno} onChangeText={setGiorno} />
           <TextInput
             style={styles.flex}
             label="Costo in €"
@@ -110,14 +104,7 @@ export default function NuovoLavoro() {
           onChangeText={setDitta}
           left={<TextInput.Icon icon="domain" />}
         />
-        <TextInput
-          label="Garanzia fino al (gg/mm/aaaa, facoltativo)"
-          mode="outlined"
-          value={garanzia}
-          onChangeText={setGaranzia}
-          keyboardType="numbers-and-punctuation"
-          left={<TextInput.Icon icon="shield-check-outline" />}
-        />
+        <CampoData label="Garanzia fino al (facoltativo)" value={garanzia} onChangeText={setGaranzia} svuotabile />
       </Riquadro>
       <Riquadro>
         <Text variant="titleSmall">Fatture</Text>

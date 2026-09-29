@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button, Chip, SegmentedButtons, Text, TextInput } from 'react-native-paper';
 
+import { CampoData } from '@/components/CampoData';
 import { Pagina } from '@/components/Pagina';
 import { SceltaFile } from '@/components/SceltaFile';
 import { Errore, Riquadro } from '@/components/ui';
@@ -84,14 +85,7 @@ export default function NuovoMovimento() {
           value={descrizione}
           onChangeText={setDescrizione}
         />
-        <TextInput
-          label="Data (gg/mm/aaaa)"
-          mode="outlined"
-          value={giorno}
-          onChangeText={setGiorno}
-          keyboardType="numbers-and-punctuation"
-          left={<TextInput.Icon icon="calendar" />}
-        />
+        <CampoData label="Data" value={giorno} onChangeText={setGiorno} />
       </Riquadro>
 
       <Riquadro>

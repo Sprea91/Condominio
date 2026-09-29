@@ -8,6 +8,7 @@ import { ActivityIndicator, Button, Chip, Text, TextInput } from 'react-native-p
 
 import { BottoneConferma } from '@/components/BottoneConferma';
 import { DataCalendario } from '@/components/DataCalendario';
+import { CampoData } from '@/components/CampoData';
 import { Pagina } from '@/components/Pagina';
 import { BottoneNuovo, Errore, Etichetta, Nota, Riquadro, Titoletto, Vuoto } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
@@ -77,14 +78,7 @@ function NuovaScadenza({ onSalvata, onAnnulla }: { onSalvata: () => void; onAnnu
     <Riquadro evidenziato>
       <Text variant="titleSmall">Nuova scadenza</Text>
       <TextInput label="Cosa scade (es. Revisione estintori)" mode="outlined" value={titolo} onChangeText={setTitolo} />
-      <TextInput
-        label="Data (gg/mm/aaaa)"
-        mode="outlined"
-        value={giorno}
-        onChangeText={setGiorno}
-        keyboardType="numbers-and-punctuation"
-        left={<TextInput.Icon icon="calendar" />}
-      />
+      <CampoData label="Data" value={giorno} onChangeText={setGiorno} />
       <Nota>Categoria</Nota>
       <View style={styles.chip}>
         {CATEGORIE.map((c) => (

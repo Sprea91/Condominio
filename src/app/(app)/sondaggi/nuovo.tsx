@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button, IconButton, SegmentedButtons, Switch, Text, TextInput, useTheme } from 'react-native-paper';
 
+import { CampoData } from '@/components/CampoData';
 import { Pagina } from '@/components/Pagina';
 import { SceltaFile } from '@/components/SceltaFile';
 import { Errore, Nota, Riquadro } from '@/components/ui';
@@ -192,14 +193,7 @@ export default function NuovoSondaggio() {
 
       <Riquadro>
         <Text variant="titleSmall">Scadenza</Text>
-        <TextInput
-          label="Facoltativa, gg/mm/aaaa"
-          mode="outlined"
-          value={scadenza}
-          onChangeText={setScadenza}
-          keyboardType="numbers-and-punctuation"
-          left={<TextInput.Icon icon="calendar" />}
-        />
+        <CampoData label="Scadenza (facoltativa)" value={scadenza} onChangeText={setScadenza} svuotabile />
         <Nota>Si potrà votare fino alle 23:59 di quel giorno. Puoi anche chiudere la votazione a mano.</Nota>
       </Riquadro>
 

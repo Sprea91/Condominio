@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
 
+import { CampoData, CampoOra } from '@/components/CampoData';
 import { Pagina } from '@/components/Pagina';
 import { SceltaFile } from '@/components/SceltaFile';
 import { Errore, Nota, Riquadro } from '@/components/ui';
@@ -83,24 +84,8 @@ export default function NuovaAssemblea() {
       <Riquadro>
         <TextInput label="Titolo" mode="outlined" value={titolo} onChangeText={setTitolo} />
         <View style={styles.riga}>
-          <TextInput
-            style={styles.flex}
-            label="Data (gg/mm/aaaa)"
-            mode="outlined"
-            value={giorno}
-            onChangeText={setGiorno}
-            keyboardType="numbers-and-punctuation"
-            left={<TextInput.Icon icon="calendar" />}
-          />
-          <TextInput
-            style={styles.ora}
-            label="Ora"
-            placeholder="20:30"
-            mode="outlined"
-            value={orario}
-            onChangeText={setOrario}
-            keyboardType="numbers-and-punctuation"
-          />
+          <CampoData style={styles.flex} label="Data" value={giorno} onChangeText={setGiorno} />
+          <CampoOra style={styles.ora} label="Ora" value={orario} onChangeText={setOrario} />
         </View>
         <TextInput
           label="Luogo (es. Androne scala A)"
