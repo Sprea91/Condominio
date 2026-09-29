@@ -2,14 +2,15 @@
 // quota del proprio appartamento in base ai millesimi) e lista dei movimenti con i giustificativi.
 import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Chip, Icon, IconButton, SegmentedButtons, Text, useTheme } from 'react-native-paper';
+import { Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Button, Chip, Icon, IconButton, SegmentedButtons, Text, useTheme } from 'react-native-paper';
 
 import { BottoneConferma } from '@/components/BottoneConferma';
 import { CardSaldo } from '@/components/CardSaldo';
 import { Pagina } from '@/components/Pagina';
 import { BottoneNuovo, Errore, IconaTonda, Nota, Riquadro, Titoletto, Vuoto } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
+import { esportaCsv, stampaRendiconto } from '@/lib/esporta';
 import { apriFile, eliminaFile } from '@/lib/file';
 import { data, euro, millesimi } from '@/lib/formato';
 import { supabase } from '@/lib/supabase';
@@ -41,6 +42,24 @@ export default function Spese() {
     [],
   );
   const { dati, errore, ricarica, aggiorna, aggiornamento } = useDati(leggi);
+  // Condòmini con i millesimi: servono al rendiconto esportato (quota per appartamento)
+  const leggiCondomini = useCallback(
+    () =>
+      supabase
+        .from('profili')
+        .select('nome, appartamento, millesimi')
+        .eq('approvato', true)
+        .returns<{ nome: string | null; appartamento: string | null; millesimi: number }[]>(),
+    [],
+  );
+  const { dati: condomini } = useDati(leggiCondomini);
+  const datiRendiconto = () => ({
+    anno,
+    movimenti: dati ?? [],
+    condomini: [...(condomini ?? [])].sort((a, b) =>
+      (a.appartamento ?? '').localeCompare(b.appartamento ?? '', 'it', { numeric: true }),
+    ),
+  });
 
   const tutti = dati ?? [];
   const saldo = somma(tutti.filter((m) => m.tipo === 'entrata')) - somma(tutti.filter((m) => m.tipo === 'uscita'));
@@ -158,6 +177,26 @@ export default function Spese() {
                 ))}
               </Riquadro>
             </>
+          )}
+
+          {Platform.OS === 'web' && (
+            <Riquadro>
+              <View style={styles.riga}>
+                <IconaTonda icona="file-export-outline" tinta={tinte.blu} dimensione={36} />
+                <View style={styles.flex}>
+                  <Text variant="titleSmall">Rendiconto {anno}</Text>
+                  <Nota>Riepilogo, categorie, quote per appartamento e movimenti</Nota>
+                </View>
+              </View>
+              <View style={styles.azioni}>
+                <Button compact icon="microsoft-excel" onPress={() => esportaCsv(datiRendiconto())}>
+                  Excel
+                </Button>
+                <Button compact mode="contained-tonal" icon="file-pdf-box" onPress={() => stampaRendiconto(datiRendiconto())}>
+                  PDF / Stampa
+                </Button>
+              </View>
+            </Riquadro>
           )}
 
           <Titoletto>Movimenti {anno}</Titoletto>

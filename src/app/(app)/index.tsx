@@ -9,7 +9,7 @@ import { DataCalendario } from '@/components/DataCalendario';
 import { Pagina } from '@/components/Pagina';
 import { Etichetta, IconaTonda, Nota, Riquadro, Titoletto } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
-import { dataOra, euro, millesimi, ora, traQuanto } from '@/lib/formato';
+import { data, dataOra, euro, millesimi, ora, traQuanto } from '@/lib/formato';
 import { ultimaVisita } from '@/lib/letti';
 import type { NomeTinta } from '@/lib/guasti';
 import { RISPOSTE } from '@/lib/presenze';
@@ -31,9 +31,13 @@ type Riepilogo = {
   inAttesa: number;
   prossimaAssemblea: { id: string; titolo: string; data_ora: string; luogo: string | null } | null;
   miaRisposta: RispostaPresenza | null;
+  rateDaPagare: { totale: number; inRitardo: number; prossima: string | null };
+  scadenzeVicine: number;
 };
 
 const ALTRE: { titolo: string; dettaglio: string; icona: string; tinta: NomeTinta; link: Href }[] = [
+  { titolo: 'Le mie rate', dettaglio: 'Quanto devo, cosa ho pagato, IBAN', icona: 'cash-multiple', tinta: 'viola', link: '/rate' },
+  { titolo: 'Scadenze', dettaglio: 'Revisioni, polizze, manutenzioni', icona: 'calendar-alert', tinta: 'rosso', link: '/scadenze' },
   { titolo: 'Documenti', dettaglio: 'Regolamento, polizze, contratti', icona: 'folder-outline', tinta: 'blu', link: '/documenti' },
   { titolo: 'Storico lavori', dettaglio: 'Interventi, fatture e garanzie', icona: 'hammer-wrench', tinta: 'arancio', link: '/lavori' },
   { titolo: 'Numeri utili', dettaglio: 'Idraulico, elettricista, emergenze', icona: 'phone-outline', tinta: 'verde', link: '/numeri' },
@@ -92,7 +96,9 @@ export default function Home() {
 
   const leggi = useCallback(async () => {
     const id = profilo?.id ?? '';
-    const [s, a, g, so, v, p, asm, pr] = await Promise.all([
+    const oggi = new Date().toISOString().slice(0, 10);
+    const tra30 = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
+    const [s, a, g, so, v, p, asm, pr, ra, sc] = await Promise.all([
       supabase.from('saldo').select('saldo').maybeSingle(),
       supabase.from('avvisi').select('*').order('creato_il', { ascending: false }),
       supabase.from('guasti').select('stato').neq('stato', 'chiuso'),
@@ -106,6 +112,8 @@ export default function Home() {
         .order('data_ora', { ascending: true })
         .limit(1),
       supabase.from('presenze').select('assemblea_id, risposta').eq('utente_id', id),
+      supabase.from('rate').select('importo, emissione:rate_emissioni(scadenza)').eq('utente_id', id).is('pagata_il', null),
+      supabase.from('scadenze').select('id', { count: 'exact', head: true }).lte('data', tra30),
     ]);
     // Le assemblee arrivano con supabase/05-...sql: se non c'è ancora, la Home funziona lo stesso
     const error = s.error ?? a.error ?? g.error ?? so.error ?? v.error;
@@ -122,7 +130,19 @@ export default function Home() {
       inAttesa: p.count ?? 0,
       prossimaAssemblea: asm.error ? null : (asm.data?.[0] ?? null),
       miaRisposta: null,
+      rateDaPagare: { totale: 0, inRitardo: 0, prossima: null },
+      // Rate e scadenze arrivano con supabase/07-...sql: se mancano si ignorano
+      scadenzeVicine: sc.error ? 0 : (sc.count ?? 0),
     };
+    if (!ra.error) {
+      const rate = (ra.data ?? []) as unknown as { importo: number; emissione: { scadenza: string } | null }[];
+      const scadenze = rate.map((r) => r.emissione?.scadenza ?? '').filter(Boolean).sort();
+      dati.rateDaPagare = {
+        totale: rate.reduce((t, r) => t + Number(r.importo), 0),
+        inRitardo: scadenze.filter((x) => x < oggi).length,
+        prossima: scadenze.find((x) => x >= oggi) ?? null,
+      };
+    }
     if (dati.prossimaAssemblea && !pr.error) {
       const r = (pr.data ?? []).find((x) => x.assemblea_id === dati.prossimaAssemblea!.id);
       dati.miaRisposta = (r?.risposta as RispostaPresenza | undefined) ?? null;
@@ -201,6 +221,49 @@ export default function Home() {
             </View>
           </View>
           <Icon source="chevron-right" size={20} color={tema.colors.onSurfaceVariant} />
+        </Riquadro>
+      )}
+
+      {/* Rate da pagare */}
+      {!!dati?.rateDaPagare.totale && (
+        <Riquadro
+          onPress={() => router.push('/rate')}
+          style={[
+            styles.rigaAvviso,
+            {
+              backgroundColor: (dati.rateDaPagare.inRitardo ? tinte.rosso : tinte.viola).sfondo,
+              borderColor: (dati.rateDaPagare.inRitardo ? tinte.rosso : tinte.viola).sfondo,
+            },
+          ]}
+        >
+          <Icon source="cash-clock" size={24} color={(dati.rateDaPagare.inRitardo ? tinte.rosso : tinte.viola).testo} />
+          <View style={styles.flex}>
+            <Text variant="titleSmall" style={{ color: (dati.rateDaPagare.inRitardo ? tinte.rosso : tinte.viola).testo }}>
+              {`Da pagare: ${euro(dati.rateDaPagare.totale)}`}
+            </Text>
+            <Text variant="bodySmall" style={{ color: (dati.rateDaPagare.inRitardo ? tinte.rosso : tinte.viola).testo }}>
+              {dati.rateDaPagare.inRitardo
+                ? `${dati.rateDaPagare.inRitardo} rat${dati.rateDaPagare.inRitardo === 1 ? 'a' : 'e'} in ritardo`
+                : dati.rateDaPagare.prossima
+                  ? `Entro il ${data(`${dati.rateDaPagare.prossima}T12:00:00`)}`
+                  : ''}
+            </Text>
+          </View>
+          <Icon source="chevron-right" size={20} color={(dati.rateDaPagare.inRitardo ? tinte.rosso : tinte.viola).testo} />
+        </Riquadro>
+      )}
+
+      {/* Scadenze vicine (solo amministratore) */}
+      {admin && !!dati?.scadenzeVicine && (
+        <Riquadro
+          onPress={() => router.push('/scadenze')}
+          style={[styles.rigaAvviso, { backgroundColor: tinte.rosso.sfondo, borderColor: tinte.rosso.sfondo }]}
+        >
+          <Icon source="calendar-alert" size={22} color={tinte.rosso.testo} />
+          <Text variant="titleSmall" style={[styles.flex, { color: tinte.rosso.testo }]}>
+            {dati.scadenzeVicine === 1 ? '1 scadenza entro 30 giorni' : `${dati.scadenzeVicine} scadenze entro 30 giorni`}
+          </Text>
+          <Icon source="chevron-right" size={20} color={tinte.rosso.testo} />
         </Riquadro>
       )}
 

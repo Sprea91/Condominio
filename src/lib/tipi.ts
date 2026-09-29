@@ -169,3 +169,37 @@ export type Commento = {
   creato_il: string;
   autore: Autore;
 };
+
+export type Ripartizione = 'millesimi' | 'uguale' | 'manuale';
+
+export type EmissioneRate = {
+  id: string;
+  titolo: string;
+  scadenza: string;
+  totale: number;
+  ripartizione: Ripartizione;
+  note: string | null;
+  creato_il: string;
+};
+
+export type Rata = {
+  id: string;
+  emissione_id: string;
+  utente_id: string;
+  importo: number;
+  pagata_il: string | null;
+  movimento_id: string | null;
+  emissione?: EmissioneRate | null;
+  profilo?: { nome: string | null; appartamento: string | null; millesimi: number } | null;
+};
+
+export type Ripetizione = 'nessuna' | 'mensile' | 'trimestrale' | 'semestrale' | 'annuale' | 'biennale';
+
+export type Scadenza = {
+  id: string;
+  titolo: string;
+  data: string;
+  categoria: string;
+  ripetizione: Ripetizione;
+  note: string | null;
+};

@@ -27,6 +27,8 @@ export default function LayoutApp() {
       <Stack.Screen name="numeri" />
       <Stack.Screen name="lavori/index" />
       <Stack.Screen name="lavori/[id]" />
+      <Stack.Screen name="rate/index" />
+      <Stack.Screen name="scadenze" />
 
       <Stack.Protected guard={admin}>
         <Stack.Screen name="condomini" />
@@ -35,6 +37,8 @@ export default function LayoutApp() {
         <Stack.Screen name="spese/nuovo" />
         <Stack.Screen name="assemblee/nuova" />
         <Stack.Screen name="lavori/nuovo" />
+        <Stack.Screen name="rate/nuova" />
+        <Stack.Screen name="rate/[id]" />
       </Stack.Protected>
     </Stack>
   );
