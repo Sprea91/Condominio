@@ -47,9 +47,7 @@ export function SceltaFile({ file, onCambia, tipi, etichetta, multipli = true }:
       <Button mode="outlined" icon="paperclip" onPress={aggiungi}>
         {etichetta}
       </Button>
-      <HelperText type="error" visible={!!errore}>
-        {errore}
-      </HelperText>
+      {!!errore && <HelperText type="error">{errore}</HelperText>}
     </View>
   );
 }

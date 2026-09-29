@@ -1,7 +1,7 @@
 // Pulsante per azioni irreversibili (es. Elimina): al primo tocco chiede conferma.
 // (Gli avvisi di sistema "Alert" non funzionano nel browser, per questo si fa così.)
 import { useState } from 'react';
-import { Button } from 'react-native-paper';
+import { Button, useTheme } from 'react-native-paper';
 
 type Props = {
   etichetta: string;
@@ -10,12 +10,13 @@ type Props = {
 };
 
 export function BottoneConferma({ etichetta, conferma = 'Conferma', onConferma }: Props) {
+  const tema = useTheme();
   const [chiedi, setChiedi] = useState(false);
   const [inCorso, setInCorso] = useState(false);
 
   if (!chiedi) {
     return (
-      <Button textColor="#B3261E" onPress={() => setChiedi(true)}>
+      <Button textColor={tema.colors.error} icon="trash-can-outline" onPress={() => setChiedi(true)}>
         {etichetta}
       </Button>
     );
@@ -36,7 +37,7 @@ export function BottoneConferma({ etichetta, conferma = 'Conferma', onConferma }
       <Button onPress={() => setChiedi(false)} disabled={inCorso}>
         Annulla
       </Button>
-      <Button mode="contained" buttonColor="#B3261E" onPress={esegui} loading={inCorso} disabled={inCorso}>
+      <Button mode="contained" buttonColor={tema.colors.error} textColor={tema.colors.onError} onPress={esegui} loading={inCorso} disabled={inCorso}>
         {conferma}
       </Button>
     </>

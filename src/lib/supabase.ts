@@ -1,6 +1,7 @@
 // Client Supabase unico per tutta l'app (schema ufficiale della guida Expo).
 // La sessione di login viene salvata in "localStorage" (vedi sessione.ts / sessione.native.ts).
 import './sessione';
+import './recupero';
 import { Platform } from 'react-native';
 import { createClient } from '@supabase/supabase-js';
 

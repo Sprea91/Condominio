@@ -1,79 +1,96 @@
 // Elenco dei sondaggi: aperti in alto, poi quelli conclusi.
 import { router } from 'expo-router';
 import { useCallback } from 'react';
-import { StyleSheet } from 'react-native';
-import { ActivityIndicator, Card, Chip, FAB, Text } from 'react-native-paper';
+import { StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Icon, Text, useTheme } from 'react-native-paper';
 
 import { Pagina } from '@/components/Pagina';
+import { BottoneNuovo, Errore, Etichetta, IconaTonda, Nota, Riquadro, Titoletto, Vuoto } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { data, dataOra } from '@/lib/formato';
 import { aperto } from '@/lib/sondaggi';
 import { supabase } from '@/lib/supabase';
+import { useTinte } from '@/lib/tema';
 import type { Sondaggio } from '@/lib/tipi';
 import { useDati } from '@/lib/useDati';
 
 export default function Sondaggi() {
   const { profilo } = useAuth();
+  const tema = useTheme();
+  const tinte = useTinte();
   const admin = profilo?.ruolo === 'amministratore';
 
-  const leggiSondaggi = useCallback(
-    () =>
+  const leggi = useCallback(async () => {
+    const [s, v] = await Promise.all([
       supabase
         .from('sondaggi')
         .select('*, sondaggi_opzioni(id, testo, ordine)')
         .order('creato_il', { ascending: false })
         .returns<Sondaggio[]>(),
-    [],
-  );
-  const leggiMieiVoti = useCallback(
-    () => supabase.from('voti').select('sondaggio_id').eq('utente_id', profilo?.id ?? '').returns<{ sondaggio_id: string }[]>(),
-    [profilo?.id],
-  );
-  const { dati, errore, aggiorna, aggiornamento } = useDati(leggiSondaggi);
-  const { dati: mieiVoti } = useDati(leggiMieiVoti);
-  const votati = new Set(mieiVoti?.map((v) => v.sondaggio_id));
+      supabase.from('voti').select('sondaggio_id').eq('utente_id', profilo?.id ?? ''),
+    ]);
+    const error = s.error ?? v.error;
+    if (error) return { data: null, error };
+    return { data: { sondaggi: s.data ?? [], votati: new Set((v.data ?? []).map((x) => x.sondaggio_id as string)) }, error: null };
+  }, [profilo?.id]);
+  const { dati, errore, aggiorna, aggiornamento } = useDati(leggi);
 
-  const ordinati = dati ? [...dati.filter(aperto), ...dati.filter((s) => !aperto(s))] : null;
+  const aperti = dati?.sondaggi.filter(aperto) ?? [];
+  const conclusi = dati?.sondaggi.filter((s) => !aperto(s)) ?? [];
+
+  function Scheda({ s }: { s: Sondaggio }) {
+    const ok = aperto(s);
+    const votato = dati?.votati.has(s.id);
+    const tinta = !ok ? tinte.grigio : votato ? tinte.verde : tinte.viola;
+    return (
+      <Riquadro onPress={() => router.push(`/sondaggi/${s.id}`)} style={styles.riga}>
+        <IconaTonda icona={ok ? 'vote-outline' : 'archive-outline'} tinta={tinta} />
+        <View style={styles.flex}>
+          <Text variant="titleMedium" numberOfLines={3}>
+            {s.domanda}
+          </Text>
+          <Nota>
+            {s.modalita === 'millesimi' ? 'Per millesimi' : 'Per testa'} ·{' '}
+            {s.scadenza ? `${ok ? 'scade' : 'scaduto'} il ${dataOra(s.scadenza)}` : `dal ${data(s.creato_il)}`}
+          </Nota>
+          <View style={styles.sotto}>
+            <Etichetta testo={!ok ? 'Concluso' : votato ? 'Hai votato' : 'Da votare'} tinta={tinta} />
+          </View>
+        </View>
+        <Icon source="chevron-right" size={20} color={tema.colors.onSurfaceVariant} />
+      </Riquadro>
+    );
+  }
 
   return (
     <Pagina
       titolo="Sondaggi"
+      sottotitolo="Decisioni comuni"
       onAggiorna={aggiorna}
       aggiornamento={aggiornamento}
-      fisso={admin && <FAB icon="plus" label="Nuovo sondaggio" style={styles.fab} onPress={() => router.push('/sondaggi/nuovo')} />}
+      fisso={admin && <BottoneNuovo etichetta="Nuovo sondaggio" onPress={() => router.push('/sondaggi/nuovo')} />}
     >
-      {!!errore && <Text style={styles.errore}>{errore}</Text>}
-      {ordinati === null && !errore && <ActivityIndicator />}
-      {ordinati?.length === 0 && <Text variant="bodyMedium">Nessun sondaggio.</Text>}
+      <Errore testo={errore} />
+      {dati === null && !errore && <ActivityIndicator style={styles.caricamento} />}
+      {dati?.sondaggi.length === 0 && (
+        <Vuoto icona="vote-outline" titolo="Nessun sondaggio" testo="Quando ci sarà da decidere qualcosa insieme, lo troverai qui." />
+      )}
 
-      {ordinati?.map((s) => {
-        const ok = aperto(s);
-        const etichetta = !ok ? 'Concluso' : votati.has(s.id) ? 'Hai votato' : 'Da votare';
-        const colore = !ok ? '#616161' : votati.has(s.id) ? '#2E7D32' : '#1565C0';
-        return (
-          <Card key={s.id} mode="elevated" onPress={() => router.push(`/sondaggi/${s.id}`)}>
-            <Card.Title
-              title={s.domanda}
-              titleNumberOfLines={3}
-              subtitle={`${s.modalita === 'millesimi' ? 'Per millesimi' : 'Per testa'} · ${
-                s.scadenza ? `scade il ${dataOra(s.scadenza)}` : `creato il ${data(s.creato_il)}`
-              }`}
-              right={() => (
-                <Chip compact style={[styles.chip, { backgroundColor: colore }]} textStyle={styles.testoChip}>
-                  {etichetta}
-                </Chip>
-              )}
-            />
-          </Card>
-        );
-      })}
+      {aperti.length > 0 && <Titoletto>In corso</Titoletto>}
+      {aperti.map((s) => (
+        <Scheda key={s.id} s={s} />
+      ))}
+      {conclusi.length > 0 && <Titoletto>Conclusi</Titoletto>}
+      {conclusi.map((s) => (
+        <Scheda key={s.id} s={s} />
+      ))}
     </Pagina>
   );
 }
 
 const styles = StyleSheet.create({
-  errore: { color: '#B3261E' },
-  fab: { position: 'absolute', right: 16, bottom: 16 },
-  chip: { marginRight: 12 },
-  testoChip: { color: '#fff' },
+  caricamento: { marginTop: 32 },
+  riga: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  flex: { flex: 1, gap: 2 },
+  sotto: { flexDirection: 'row', marginTop: 6 },
 });

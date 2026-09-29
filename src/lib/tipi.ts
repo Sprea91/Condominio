@@ -28,6 +28,7 @@ export type Avviso = {
   titolo: string;
   testo: string;
   creato_il: string;
+  in_evidenza?: boolean; // colonna aggiunta da supabase/04-migliorie.sql
   autore: Autore;
   avvisi_allegati: AllegatoAvviso[];
 };

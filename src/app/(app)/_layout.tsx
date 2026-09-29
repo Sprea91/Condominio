@@ -1,16 +1,19 @@
 // Schermate dell'app vera e propria (solo utenti approvati, vedi ../_layout.tsx).
 // Quelle di gestione sono visibili solo all'amministratore.
 import { Stack } from 'expo-router';
+import { useTheme } from 'react-native-paper';
 
 import { useAuth } from '@/lib/auth';
 
 export default function LayoutApp() {
   const { profilo } = useAuth();
+  const tema = useTheme();
   const admin = profilo?.ruolo === 'amministratore';
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: tema.colors.background } }}>
       <Stack.Screen name="index" />
+      <Stack.Screen name="profilo" />
       <Stack.Screen name="avvisi/index" />
       <Stack.Screen name="guasti/index" />
       <Stack.Screen name="guasti/nuovo" />

@@ -3,15 +3,17 @@
 // Nessuno vede chi ha votato cosa: i totali arrivano dalla funzione risultati_sondaggio.
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Button, Card, HelperText, ProgressBar, RadioButton, Text } from 'react-native-paper';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Button, Icon, Text, useTheme } from 'react-native-paper';
 
 import { BottoneConferma } from '@/components/BottoneConferma';
 import { Pagina } from '@/components/Pagina';
+import { Errore, Etichetta, Nota, Riquadro, Titoletto } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { dataOra, millesimi } from '@/lib/formato';
 import { aperto } from '@/lib/sondaggi';
 import { supabase } from '@/lib/supabase';
+import { useTinte } from '@/lib/tema';
 import type { RisultatoOpzione, Sondaggio } from '@/lib/tipi';
 import { useDati } from '@/lib/useDati';
 
@@ -22,9 +24,20 @@ type Dati = {
   aventiDiritto: { persone: number; millesimi: number };
 };
 
+// Barra orizzontale colorata (quota da 0 a 1)
+function Barra({ quota, colore, sfondo }: { quota: number; colore: string; sfondo: string }) {
+  return (
+    <View style={[styles.barra, { backgroundColor: sfondo }]}>
+      <View style={[styles.riempimento, { width: `${Math.round(quota * 100)}%`, backgroundColor: colore }]} />
+    </View>
+  );
+}
+
 export default function DettaglioSondaggio() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { profilo } = useAuth();
+  const tema = useTheme();
+  const tinte = useTinte();
   const admin = profilo?.ruolo === 'amministratore';
   const [scelta, setScelta] = useState('');
   const [cambio, setCambio] = useState(false);
@@ -53,8 +66,18 @@ export default function DettaglioSondaggio() {
   }, [id, profilo?.id]);
   const { dati, errore: erroreCaricamento, ricarica } = useDati(leggi);
 
-  if (erroreCaricamento) return <Pagina titolo="Sondaggio"><Text>{erroreCaricamento}</Text></Pagina>;
-  if (!dati) return <Pagina titolo="Sondaggio"><ActivityIndicator /></Pagina>;
+  if (erroreCaricamento)
+    return (
+      <Pagina titolo="Sondaggio">
+        <Errore testo={erroreCaricamento} />
+      </Pagina>
+    );
+  if (!dati)
+    return (
+      <Pagina titolo="Sondaggio">
+        <ActivityIndicator style={styles.caricamento} />
+      </Pagina>
+    );
 
   const { sondaggio: s, mioVoto, risultati, aventiDiritto } = dati;
   const votabile = aperto(s);
@@ -64,6 +87,16 @@ export default function DettaglioSondaggio() {
 
   const totaleTeste = risultati.reduce((t, x) => t + Number(x.voti_testa), 0);
   const totaleMillesimi = risultati.reduce((t, x) => t + Number(x.voti_millesimi), 0);
+  const valore = (r: RisultatoOpzione) => (perMillesimi ? Number(r.voti_millesimi) : Number(r.voti_testa));
+  const totale = perMillesimi ? totaleMillesimi : totaleTeste;
+  const massimo = Math.max(0, ...risultati.map(valore));
+  const partecipazione = perMillesimi
+    ? aventiDiritto.millesimi > 0
+      ? totaleMillesimi / aventiDiritto.millesimi
+      : 0
+    : aventiDiritto.persone > 0
+      ? totaleTeste / aventiDiritto.persone
+      : 0;
 
   async function vota() {
     if (!scelta) {
@@ -100,120 +133,167 @@ export default function DettaglioSondaggio() {
 
   return (
     <Pagina titolo="Sondaggio">
-      <Card mode="elevated">
-        <Card.Title title={s.domanda} titleNumberOfLines={4} titleVariant="titleLarge" />
-        <Card.Content style={styles.contenuto}>
-          {!!s.descrizione && <Text variant="bodyMedium">{s.descrizione}</Text>}
-          <Text variant="bodySmall">
-            {perMillesimi ? 'Voto per millesimi' : 'Voto per testa (1 voto a testa)'}
-            {s.scadenza ? ` · scadenza ${dataOra(s.scadenza)}` : ''}
-            {!votabile ? ' · CONCLUSO' : ''}
-          </Text>
-        </Card.Content>
-      </Card>
-
-      {mostraVoto && (
-        <Card mode="outlined">
-          <Card.Title title={mioVoto ? 'Cambia il tuo voto' : 'Il tuo voto'} />
-          <Card.Content>
-            <RadioButton.Group onValueChange={setScelta} value={scelta}>
-              {s.sondaggi_opzioni.map((o) => (
-                <RadioButton.Item key={o.id} label={o.testo} value={o.id} />
-              ))}
-            </RadioButton.Group>
-            <HelperText type="error" visible={!!errore}>
-              {errore}
-            </HelperText>
-          </Card.Content>
-          <Card.Actions>
-            {cambio && <Button onPress={() => setCambio(false)}>Annulla</Button>}
-            <Button mode="contained" onPress={vota} loading={inCorso} disabled={inCorso}>
-              Vota
-            </Button>
-          </Card.Actions>
-        </Card>
-      )}
-
-      {!!mioVoto && !cambio && (
-        <Card mode="contained">
-          <Card.Content>
-            <Text variant="bodyMedium">
-              Hai votato: <Text style={styles.grassetto}>{s.sondaggi_opzioni.find((o) => o.id === mioVoto)?.testo}</Text>
-            </Text>
-          </Card.Content>
-          {votabile && (
-            <Card.Actions>
-              <Button
-                onPress={() => {
-                  setScelta(mioVoto);
-                  setCambio(true);
-                }}
-              >
-                Cambia voto
-              </Button>
-            </Card.Actions>
-          )}
-        </Card>
-      )}
-
-      {mostraRisultati && (
-        <Card mode="outlined">
-          <Card.Title
-            title="Risultati"
-            subtitle={
-              perMillesimi
-                ? `Votato: ${millesimi(totaleMillesimi)} su ${millesimi(aventiDiritto.millesimi)} millesimi (${totaleTeste} persone)`
-                : `Votanti: ${totaleTeste} su ${aventiDiritto.persone}`
-            }
-            subtitleNumberOfLines={2}
+      {/* Domanda */}
+      <Riquadro>
+        <View style={styles.etichette}>
+          <Etichetta
+            testo={votabile ? 'In corso' : 'Concluso'}
+            tinta={votabile ? tinte.viola : tinte.grigio}
+            icona={votabile ? 'clock-outline' : 'archive-outline'}
           />
-          <Card.Content style={styles.contenuto}>
+          <Etichetta
+            testo={perMillesimi ? 'Per millesimi' : 'Per testa'}
+            tinta={tinte.blu}
+            icona={perMillesimi ? 'chart-pie' : 'account-multiple'}
+          />
+        </View>
+        <Text variant="headlineSmall">{s.domanda}</Text>
+        {!!s.descrizione && (
+          <Text variant="bodyLarge" style={styles.testo}>
+            {s.descrizione}
+          </Text>
+        )}
+        {s.scadenza && <Nota>{`${votabile ? 'Si vota fino al' : 'Scaduto il'} ${dataOra(s.scadenza)}`}</Nota>}
+      </Riquadro>
+
+      {/* Voto */}
+      {mostraVoto && (
+        <>
+          <Titoletto>{mioVoto ? 'Cambia il tuo voto' : 'Il tuo voto'}</Titoletto>
+          {s.sondaggi_opzioni.map((o) => {
+            const scelto = scelta === o.id;
+            return (
+              <Pressable
+                key={o.id}
+                onPress={() => setScelta(o.id)}
+                style={[
+                  styles.opzione,
+                  {
+                    borderColor: scelto ? tema.colors.primary : tema.colors.outlineVariant,
+                    backgroundColor: scelto ? tema.colors.primaryContainer : tema.colors.surface,
+                  },
+                ]}
+              >
+                <Icon
+                  source={scelto ? 'radiobox-marked' : 'radiobox-blank'}
+                  size={22}
+                  color={scelto ? tema.colors.primary : tema.colors.onSurfaceVariant}
+                />
+                <Text variant="titleMedium" style={styles.flex}>
+                  {o.testo}
+                </Text>
+              </Pressable>
+            );
+          })}
+          <Errore testo={errore} />
+          <View style={styles.azioni}>
+            {cambio && <Button onPress={() => setCambio(false)}>Annulla</Button>}
+            <Button mode="contained" icon="check" onPress={vota} loading={inCorso} disabled={inCorso || !scelta}>
+              Conferma voto
+            </Button>
+          </View>
+        </>
+      )}
+
+      {/* Voto già dato */}
+      {!!mioVoto && !cambio && (
+        <Riquadro style={[styles.riga, { backgroundColor: tinte.verde.sfondo, borderColor: tinte.verde.sfondo }]}>
+          <Icon source="check-circle" size={24} color={tinte.verde.testo} />
+          <View style={styles.flex}>
+            <Text variant="labelMedium" style={{ color: tinte.verde.testo }}>
+              Hai votato
+            </Text>
+            <Text variant="titleMedium" style={{ color: tinte.verde.testo }}>
+              {s.sondaggi_opzioni.find((o) => o.id === mioVoto)?.testo}
+            </Text>
+          </View>
+          {votabile && (
+            <Button
+              compact
+              textColor={tinte.verde.testo}
+              onPress={() => {
+                setScelta(mioVoto);
+                setCambio(true);
+              }}
+            >
+              Cambia
+            </Button>
+          )}
+        </Riquadro>
+      )}
+
+      {/* Risultati */}
+      {mostraRisultati ? (
+        <>
+          <Titoletto>Risultati</Titoletto>
+          <Riquadro style={styles.risultati}>
             {risultati.map((r) => {
-              const valore = perMillesimi ? Number(r.voti_millesimi) : Number(r.voti_testa);
-              const totale = perMillesimi ? totaleMillesimi : totaleTeste;
-              const quota = totale > 0 ? valore / totale : 0;
+              const v = valore(r);
+              const quota = totale > 0 ? v / totale : 0;
+              const inTesta = v > 0 && v === massimo;
               return (
                 <View key={r.opzione_id} style={styles.risultato}>
                   <View style={styles.rigaRisultato}>
-                    <Text variant="bodyMedium" style={styles.opzione}>
+                    <Text variant="titleSmall" style={styles.flex}>
                       {r.testo}
                     </Text>
-                    <Text variant="bodyMedium">
-                      {perMillesimi ? `${millesimi(valore)} ‰` : `${valore} vot${valore === 1 ? 'o' : 'i'}`} ·{' '}
-                      {Math.round(quota * 100)}%
-                    </Text>
+                    <Text variant="titleSmall">{Math.round(quota * 100)}%</Text>
                   </View>
-                  <ProgressBar progress={quota} />
+                  <Barra
+                    quota={quota}
+                    colore={inTesta ? tema.colors.primary : tema.colors.outline}
+                    sfondo={tema.colors.surfaceVariant}
+                  />
+                  <Nota>{perMillesimi ? `${millesimi(v)} millesimi · ${r.voti_testa} voti` : `${v} vot${v === 1 ? 'o' : 'i'}`}</Nota>
                 </View>
               );
             })}
-          </Card.Content>
-        </Card>
+            <View style={[styles.partecipazione, { borderTopColor: tema.colors.outlineVariant }]}>
+              <View style={styles.rigaRisultato}>
+                <Nota>Partecipazione</Nota>
+                <Nota>
+                  {perMillesimi
+                    ? `${millesimi(totaleMillesimi)} / ${millesimi(aventiDiritto.millesimi)} millesimi`
+                    : `${totaleTeste} / ${aventiDiritto.persone} condòmini`}
+                </Nota>
+              </View>
+              <Barra quota={Math.min(1, partecipazione)} colore={tinte.verde.testo} sfondo={tema.colors.surfaceVariant} />
+            </View>
+          </Riquadro>
+        </>
+      ) : (
+        <Nota style={styles.centro}>I risultati saranno visibili dopo il tuo voto.</Nota>
       )}
 
-      {!mostraRisultati && (
-        <Text variant="bodySmall">I risultati saranno visibili dopo il tuo voto.</Text>
-      )}
-
+      {/* Gestione */}
       {admin && (
-        <Card mode="outlined">
-          <Card.Title title="Gestione (amministratore)" />
-          <Card.Actions>
+        <>
+          <Titoletto>Gestione amministratore</Titoletto>
+          <Riquadro style={styles.azioni}>
             <BottoneConferma etichetta="Elimina" conferma="Elimina sondaggio" onConferma={elimina} />
-            <Button mode="contained-tonal" onPress={() => chiudi(!s.chiuso)}>
+            <Button mode="contained-tonal" icon={s.chiuso ? 'lock-open-outline' : 'lock-outline'} onPress={() => chiudi(!s.chiuso)}>
               {s.chiuso ? 'Riapri votazione' : 'Chiudi votazione'}
             </Button>
-          </Card.Actions>
-        </Card>
+          </Riquadro>
+        </>
       )}
     </Pagina>
   );
 }
 
 const styles = StyleSheet.create({
-  contenuto: { gap: 8 },
-  grassetto: { fontWeight: 'bold' },
-  risultato: { gap: 4 },
-  rigaRisultato: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
-  opzione: { flex: 1 },
+  caricamento: { marginTop: 32 },
+  etichette: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
+  testo: { lineHeight: 24 },
+  opzione: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1.5, borderRadius: 16, padding: 16 },
+  flex: { flex: 1 },
+  azioni: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap', gap: 8 },
+  riga: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  risultati: { gap: 16 },
+  risultato: { gap: 6 },
+  rigaRisultato: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
+  barra: { height: 10, borderRadius: 5, overflow: 'hidden' },
+  riempimento: { height: '100%', borderRadius: 5 },
+  partecipazione: { borderTopWidth: 1, paddingTop: 12, gap: 6 },
+  centro: { alignSelf: 'center' },
 });

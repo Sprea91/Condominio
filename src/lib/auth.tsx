@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 
+import { arrivoDaRecupero } from './recupero';
 import { supabase } from './supabase';
 import type { Profilo } from './tipi';
 
@@ -10,6 +11,9 @@ type StatoAuth = {
   session: Session | null;
   profilo: Profilo | null;
   caricamento: boolean;
+  // true se l'utente è arrivato dal link "password dimenticata" e deve sceglierne una nuova
+  recupero: boolean;
+  fineRecupero: () => void;
   ricaricaProfilo: () => Promise<void>;
   esci: () => Promise<void>;
 };
@@ -22,6 +26,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // id dell'utente di cui è stato letto il profilo (serve a sapere se è ancora da caricare)
   const [profiloLettoPer, setProfiloLettoPer] = useState<string | null>(null);
   const [sessioneLetta, setSessioneLetta] = useState(false);
+  const [recupero, setRecupero] = useState(arrivoDaRecupero);
 
   // 1. Legge la sessione salvata e resta in ascolto di login/logout
   useEffect(() => {
@@ -29,8 +34,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(data.session);
       setSessioneLetta(true);
     });
-    const { data } = supabase.auth.onAuthStateChange((_evento, nuovaSessione) => {
+    const { data } = supabase.auth.onAuthStateChange((evento, nuovaSessione) => {
       setSession(nuovaSessione);
+      if (evento === 'PASSWORD_RECOVERY') setRecupero(true);
+      if (evento === 'SIGNED_OUT') setRecupero(false);
     });
     return () => data.subscription.unsubscribe();
   }, []);
@@ -60,7 +67,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const caricamento = !sessioneLetta || (!!userId && profiloLettoPer !== userId);
 
   return (
-    <AuthContext.Provider value={{ session, profilo, caricamento, ricaricaProfilo, esci }}>
+    <AuthContext.Provider
+      value={{ session, profilo, caricamento, recupero, fineRecupero: () => setRecupero(false), ricaricaProfilo, esci }}
+    >
       {children}
     </AuthContext.Provider>
   );

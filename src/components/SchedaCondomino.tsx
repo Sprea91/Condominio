@@ -3,11 +3,14 @@
 // - Attivo: si correggono appartamento, millesimi e ruolo.
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Button, Card, HelperText, SegmentedButtons, Text, TextInput } from 'react-native-paper';
+import { Avatar, Button, SegmentedButtons, Text, TextInput, useTheme } from 'react-native-paper';
 
 import { leggiNumero } from '@/lib/formato';
 import { supabase } from '@/lib/supabase';
+import { useTinte } from '@/lib/tema';
 import type { Profilo, Ruolo } from '@/lib/tipi';
+
+import { Errore, Etichetta, Nota, Riquadro } from './ui';
 
 type Props = {
   profilo: Profilo;
@@ -16,6 +19,8 @@ type Props = {
 };
 
 export function SchedaCondomino({ profilo, sonoIo, onModificato }: Props) {
+  const tema = useTheme();
+  const tinte = useTinte();
   const inAttesa = !profilo.approvato;
   const [appartamento, setAppartamento] = useState(
     profilo.appartamento ?? profilo.appartamento_richiesto ?? '',
@@ -69,56 +74,59 @@ export function SchedaCondomino({ profilo, sonoIo, onModificato }: Props) {
     onModificato();
   }
 
-  return (
-    <Card mode="outlined">
-      <Card.Title
-        title={profilo.nome ?? '(senza nome)'}
-        subtitle={profilo.email + (sonoIo ? '  ·  tu' : '')}
-      />
-      <Card.Content style={styles.contenuto}>
-        {inAttesa && (
-          <Text variant="bodySmall">
-            Appartamento indicato alla registrazione: {profilo.appartamento_richiesto ?? '—'}
-          </Text>
-        )}
-        <View style={styles.riga}>
-          <TextInput
-            style={styles.campo}
-            label="Appartamento"
-            mode="outlined"
-            dense
-            value={appartamento}
-            onChangeText={setAppartamento}
-          />
-          <TextInput
-            style={styles.campo}
-            label="Millesimi"
-            mode="outlined"
-            dense
-            value={millesimi}
-            onChangeText={setMillesimi}
-            keyboardType="decimal-pad"
-          />
-        </View>
-        {!inAttesa && !sonoIo && (
-          <SegmentedButtons
-            value={ruolo}
-            onValueChange={(v) => setRuolo(v as Ruolo)}
-            buttons={[
-              { value: 'condomino', label: 'Condòmino' },
-              { value: 'amministratore', label: 'Amministratore' },
-            ]}
-          />
-        )}
-        <HelperText type="error" visible={!!errore}>
-          {errore}
-        </HelperText>
-        {salvato && !inAttesa && <Text variant="bodySmall">Salvato.</Text>}
-      </Card.Content>
+  const nome = profilo.nome ?? '(senza nome)';
 
-      <Card.Actions>
+  return (
+    <Riquadro evidenziato={inAttesa}>
+      <View style={styles.testa}>
+        <Avatar.Text size={40} label={nome.split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? '').join('') || '?'} />
+        <View style={styles.flex}>
+          <Text variant="titleMedium">
+            {nome}
+            {sonoIo ? '  (tu)' : ''}
+          </Text>
+          <Nota>{profilo.email}</Nota>
+        </View>
+        {!inAttesa && profilo.ruolo === 'amministratore' && <Etichetta testo="Admin" tinta={tinte.viola} />}
+      </View>
+      {inAttesa && (
+        <Nota>Appartamento indicato alla registrazione: {profilo.appartamento_richiesto ?? '—'}</Nota>
+      )}
+      <View style={styles.riga}>
+        <TextInput
+          style={styles.campo}
+          label="Appartamento"
+          mode="outlined"
+          dense
+          value={appartamento}
+          onChangeText={setAppartamento}
+        />
+        <TextInput
+          style={styles.campo}
+          label="Millesimi"
+          mode="outlined"
+          dense
+          value={millesimi}
+          onChangeText={setMillesimi}
+          keyboardType="decimal-pad"
+        />
+      </View>
+      {!inAttesa && !sonoIo && (
+        <SegmentedButtons
+          value={ruolo}
+          onValueChange={(v) => setRuolo(v as Ruolo)}
+          buttons={[
+            { value: 'condomino', label: 'Condòmino' },
+            { value: 'amministratore', label: 'Amministratore' },
+          ]}
+        />
+      )}
+      <Errore testo={errore} />
+      {salvato && !inAttesa && <Nota>Salvato ✓</Nota>}
+
+      <View style={styles.azioni}>
         {inAttesa && !confermaRifiuto && (
-          <Button onPress={() => setConfermaRifiuto(true)} disabled={inCorso}>
+          <Button textColor={tema.colors.error} onPress={() => setConfermaRifiuto(true)} disabled={inCorso}>
             Rifiuta
           </Button>
         )}
@@ -127,23 +135,25 @@ export function SchedaCondomino({ profilo, sonoIo, onModificato }: Props) {
             <Button onPress={() => setConfermaRifiuto(false)} disabled={inCorso}>
               Annulla
             </Button>
-            <Button mode="contained" buttonColor="#B3261E" onPress={rifiuta} loading={inCorso} disabled={inCorso}>
+            <Button mode="contained" buttonColor={tema.colors.error} onPress={rifiuta} loading={inCorso} disabled={inCorso}>
               Conferma rifiuto
             </Button>
           </>
         )}
         {!confermaRifiuto && (
-          <Button mode="contained" onPress={salva} loading={inCorso} disabled={inCorso}>
+          <Button mode={inAttesa ? 'contained' : 'contained-tonal'} icon={inAttesa ? 'check' : undefined} onPress={salva} loading={inCorso} disabled={inCorso}>
             {inAttesa ? 'Approva' : 'Salva'}
           </Button>
         )}
-      </Card.Actions>
-    </Card>
+      </View>
+    </Riquadro>
   );
 }
 
 const styles = StyleSheet.create({
-  contenuto: { gap: 8 },
+  testa: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  flex: { flex: 1 },
   riga: { flexDirection: 'row', gap: 8 },
   campo: { flex: 1 },
+  azioni: { flexDirection: 'row', justifyContent: 'flex-end', flexWrap: 'wrap', gap: 8 },
 });

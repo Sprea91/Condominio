@@ -1,10 +1,12 @@
-// Etichette e colori degli stati dei guasti.
+// Etichette, icone e colori degli stati dei guasti.
 import type { StatoGuasto } from './tipi';
 
-export const STATI: { valore: StatoGuasto; etichetta: string; colore: string }[] = [
-  { valore: 'aperto', etichetta: 'Aperto', colore: '#C62828' },
-  { valore: 'in_lavorazione', etichetta: 'In lavorazione', colore: '#EF6C00' },
-  { valore: 'chiuso', etichetta: 'Chiuso', colore: '#2E7D32' },
+export type NomeTinta = 'verde' | 'rosso' | 'arancio' | 'blu' | 'viola' | 'grigio';
+
+export const STATI: { valore: StatoGuasto; etichetta: string; tinta: NomeTinta; icona: string }[] = [
+  { valore: 'aperto', etichetta: 'Aperto', tinta: 'rosso', icona: 'alert-circle-outline' },
+  { valore: 'in_lavorazione', etichetta: 'In lavorazione', tinta: 'arancio', icona: 'progress-wrench' },
+  { valore: 'chiuso', etichetta: 'Risolto', tinta: 'verde', icona: 'check-circle-outline' },
 ];
 
 export function stato(valore: StatoGuasto) {

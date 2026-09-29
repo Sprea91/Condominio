@@ -1,10 +1,12 @@
 // Nuovo movimento del conto (solo amministratore): entrata o uscita, con fattura/giustificativo.
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Button, HelperText, SegmentedButtons, TextInput } from 'react-native-paper';
+import { StyleSheet, View } from 'react-native';
+import { Button, Chip, SegmentedButtons, Text, TextInput } from 'react-native-paper';
 
 import { Pagina } from '@/components/Pagina';
 import { SceltaFile } from '@/components/SceltaFile';
+import { Errore, Riquadro } from '@/components/ui';
 import { caricaFile, TIPI_IMMAGINE_PDF, type FileScelto } from '@/lib/file';
 import { leggiData, leggiNumero, oggi } from '@/lib/formato';
 import { supabase } from '@/lib/supabase';
@@ -55,55 +57,72 @@ export default function NuovoMovimento() {
     }
   }
 
+  const suggerite = tipo === 'uscita' ? CATEGORIE_USCITA : CATEGORIE_ENTRATA;
+
   return (
-    <Pagina titolo="Nuovo movimento">
-      <SegmentedButtons
-        value={tipo}
-        onValueChange={(v) => setTipo(v as 'entrata' | 'uscita')}
-        buttons={[
-          { value: 'uscita', label: 'Uscita', icon: 'arrow-up' },
-          { value: 'entrata', label: 'Entrata', icon: 'arrow-down' },
-        ]}
-      />
-      <TextInput
-        label="Data (gg/mm/aaaa)"
-        mode="outlined"
-        value={giorno}
-        onChangeText={setGiorno}
-        keyboardType="numbers-and-punctuation"
-      />
-      <TextInput
-        label={tipo === 'uscita' ? 'Descrizione (es. Pulizia scale ottobre)' : 'Descrizione (es. Rata condominiale app. 3)'}
-        mode="outlined"
-        value={descrizione}
-        onChangeText={setDescrizione}
-      />
-      <TextInput
-        label="Categoria (facoltativa, es. Pulizie, Luce, Manutenzione)"
-        mode="outlined"
-        value={categoria}
-        onChangeText={setCategoria}
-      />
-      <TextInput
-        label="Importo in €"
-        mode="outlined"
-        value={importo}
-        onChangeText={setImporto}
-        keyboardType="decimal-pad"
-      />
-      <SceltaFile
-        file={file}
-        onCambia={setFile}
-        tipi={TIPI_IMMAGINE_PDF}
-        etichetta="Allega fattura o giustificativo"
-        multipli={false}
-      />
-      <HelperText type="error" visible={!!errore}>
-        {errore}
-      </HelperText>
-      <Button mode="contained" onPress={salva} loading={inCorso} disabled={inCorso}>
+    <Pagina titolo="Nuovo movimento" sottotitolo="Sarà visibile a tutti i condòmini">
+      <Riquadro>
+        <SegmentedButtons
+          value={tipo}
+          onValueChange={(v) => setTipo(v as 'entrata' | 'uscita')}
+          buttons={[
+            { value: 'uscita', label: 'Uscita', icon: 'arrow-top-right' },
+            { value: 'entrata', label: 'Entrata', icon: 'arrow-bottom-left' },
+          ]}
+        />
+        <TextInput
+          label="Importo in €"
+          mode="outlined"
+          value={importo}
+          onChangeText={setImporto}
+          keyboardType="decimal-pad"
+          left={<TextInput.Icon icon="currency-eur" />}
+        />
+        <TextInput
+          label={tipo === 'uscita' ? 'Descrizione (es. Pulizia scale ottobre)' : 'Descrizione (es. Rata condominiale app. 3)'}
+          mode="outlined"
+          value={descrizione}
+          onChangeText={setDescrizione}
+        />
+        <TextInput
+          label="Data (gg/mm/aaaa)"
+          mode="outlined"
+          value={giorno}
+          onChangeText={setGiorno}
+          keyboardType="numbers-and-punctuation"
+          left={<TextInput.Icon icon="calendar" />}
+        />
+      </Riquadro>
+
+      <Riquadro>
+        <Text variant="titleSmall">Categoria</Text>
+        <View style={styles.chip}>
+          {suggerite.map((c) => (
+            <Chip key={c} selected={categoria === c} showSelectedCheck={false} mode={categoria === c ? 'flat' : 'outlined'} onPress={() => setCategoria(categoria === c ? '' : c)}>
+              {c}
+            </Chip>
+          ))}
+        </View>
+        <TextInput label="Oppure scrivi una categoria" mode="outlined" dense value={categoria} onChangeText={setCategoria} />
+      </Riquadro>
+
+      <Riquadro>
+        <Text variant="titleSmall">Fattura o giustificativo</Text>
+        <SceltaFile file={file} onCambia={setFile} tipi={TIPI_IMMAGINE_PDF} etichetta="Allega PDF o foto" multipli={false} />
+      </Riquadro>
+
+      <Errore testo={errore} />
+      <Button mode="contained" icon="check" onPress={salva} loading={inCorso} disabled={inCorso} contentStyle={styles.alto}>
         Salva movimento
       </Button>
     </Pagina>
   );
 }
+
+const CATEGORIE_USCITA = ['Pulizie', 'Luce', 'Acqua', 'Manutenzione', 'Giardino', 'Assicurazione', 'Amministrazione'];
+const CATEGORIE_ENTRATA = ['Rate condominiali', 'Rimborsi', 'Altro'];
+
+const styles = StyleSheet.create({
+  chip: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  alto: { height: 48 },
+});

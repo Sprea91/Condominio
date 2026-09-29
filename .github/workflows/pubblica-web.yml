@@ -35,6 +35,8 @@ jobs:
           EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
       # Pagina unica: 404.html = index.html così i link interni funzionano anche ricaricando
       - run: cp dist/index.html dist/404.html && touch dist/.nojekyll
+      # Icone PNG dell'app create qui (mai sul PC, vedi scripts/icone.mjs)
+      - run: node scripts/icone.mjs dist
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

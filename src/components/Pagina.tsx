@@ -1,6 +1,6 @@
-// Contenitore comune delle schermate: centrato, largo al massimo 480 px
+// Contenitore comune delle schermate: centrato, largo al massimo 560 px
 // (così nel browser del PC non si allarga a tutto schermo) e scorrevole.
-// Con "titolo" mostra in alto la barra con la freccia indietro.
+// Con "titolo" mostra in alto l'intestazione con la freccia indietro.
 import type { ReactNode } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useTheme } from 'react-native-paper';
@@ -12,6 +12,8 @@ type Props = {
   children: ReactNode;
   centrata?: boolean;
   titolo?: string;
+  sottotitolo?: string;
+  destra?: ReactNode;
   // Se presente, trascinando la lista verso il basso si ricaricano i dati
   onAggiorna?: () => void;
   aggiornamento?: boolean;
@@ -19,14 +21,19 @@ type Props = {
   fisso?: ReactNode;
 };
 
-export function Pagina({ children, centrata = false, titolo, onAggiorna, aggiornamento = false, fisso }: Props) {
+export function Pagina({
+  children,
+  centrata = false,
+  titolo,
+  sottotitolo,
+  destra,
+  onAggiorna,
+  aggiornamento = false,
+  fisso,
+}: Props) {
   const tema = useTheme();
   return (
-    <SafeAreaView
-      style={[styles.fondo, { backgroundColor: tema.colors.background }]}
-      edges={titolo ? ['bottom', 'left', 'right'] : undefined}
-    >
-      {titolo && <Intestazione titolo={titolo} />}
+    <SafeAreaView style={[styles.fondo, { backgroundColor: tema.colors.background }]}>
       <ScrollView
         contentContainerStyle={[styles.scorrimento, centrata && styles.centrata]}
         keyboardShouldPersistTaps="handled"
@@ -34,7 +41,10 @@ export function Pagina({ children, centrata = false, titolo, onAggiorna, aggiorn
           onAggiorna ? <RefreshControl refreshing={aggiornamento} onRefresh={onAggiorna} /> : undefined
         }
       >
-        <View style={styles.colonna}>{children}</View>
+        <View style={styles.colonna}>
+          {titolo && <Intestazione titolo={titolo} sottotitolo={sottotitolo} destra={destra} />}
+          {children}
+        </View>
       </ScrollView>
       {fisso}
     </SafeAreaView>
@@ -43,7 +53,7 @@ export function Pagina({ children, centrata = false, titolo, onAggiorna, aggiorn
 
 const styles = StyleSheet.create({
   fondo: { flex: 1 },
-  scorrimento: { flexGrow: 1, padding: 16, paddingBottom: 96, alignItems: 'center' },
+  scorrimento: { flexGrow: 1, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 104, alignItems: 'center' },
   centrata: { justifyContent: 'center' },
-  colonna: { width: '100%', maxWidth: 480, gap: 12 },
+  colonna: { width: '100%', maxWidth: 560, gap: 12 },
 });

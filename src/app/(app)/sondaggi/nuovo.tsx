@@ -2,9 +2,10 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Button, HelperText, IconButton, SegmentedButtons, Text, TextInput } from 'react-native-paper';
+import { Button, IconButton, SegmentedButtons, Text, TextInput } from 'react-native-paper';
 
 import { Pagina } from '@/components/Pagina';
+import { Errore, Nota, Riquadro } from '@/components/ui';
 import { leggiData } from '@/lib/formato';
 import { supabase } from '@/lib/supabase';
 import type { ModalitaVoto } from '@/lib/tipi';
@@ -69,56 +70,71 @@ export default function NuovoSondaggio() {
   }
 
   return (
-    <Pagina titolo="Nuovo sondaggio">
-      <TextInput label="Domanda" mode="outlined" value={domanda} onChangeText={setDomanda} multiline />
-      <TextInput
-        label="Descrizione (facoltativa)"
-        mode="outlined"
-        value={descrizione}
-        onChangeText={setDescrizione}
-        multiline
-        numberOfLines={4}
-      />
+    <Pagina titolo="Nuovo sondaggio" sottotitolo="Tutti i condòmini approvati potranno votare">
+      <Riquadro>
+        <TextInput label="Domanda" mode="outlined" value={domanda} onChangeText={setDomanda} multiline />
+        <TextInput
+          label="Descrizione (facoltativa)"
+          mode="outlined"
+          value={descrizione}
+          onChangeText={setDescrizione}
+          multiline
+          numberOfLines={4}
+        />
+      </Riquadro>
 
-      <Text variant="titleSmall">Come si contano i voti?</Text>
-      <SegmentedButtons
-        value={modalita}
-        onValueChange={(v) => setModalita(v as ModalitaVoto)}
-        buttons={[
-          { value: 'testa', label: 'Per testa' },
-          { value: 'millesimi', label: 'Per millesimi' },
-        ]}
-      />
+      <Riquadro>
+        <Text variant="titleSmall">Come si contano i voti?</Text>
+        <SegmentedButtons
+          value={modalita}
+          onValueChange={(v) => setModalita(v as ModalitaVoto)}
+          buttons={[
+            { value: 'testa', label: 'Per testa', icon: 'account-multiple' },
+            { value: 'millesimi', label: 'Per millesimi', icon: 'chart-pie' },
+          ]}
+        />
+        <Nota>
+          {modalita === 'testa'
+            ? 'Ogni condòmino vale 1 voto.'
+            : 'Ogni voto pesa quanto i millesimi dell’appartamento.'}
+        </Nota>
+      </Riquadro>
 
-      <Text variant="titleSmall">Opzioni</Text>
-      {opzioni.map((o, i) => (
-        <View key={i} style={styles.riga}>
-          <TextInput
-            style={styles.campo}
-            label={`Opzione ${i + 1}`}
-            mode="outlined"
-            dense
-            value={o}
-            onChangeText={(t) => cambiaOpzione(i, t)}
-          />
-          <IconButton icon="close" onPress={() => setOpzioni(opzioni.filter((_, j) => j !== i))} />
-        </View>
-      ))}
-      <Button mode="outlined" icon="plus" onPress={() => setOpzioni([...opzioni, ''])}>
-        Aggiungi opzione
-      </Button>
+      <Riquadro>
+        <Text variant="titleSmall">Opzioni</Text>
+        {opzioni.map((o, i) => (
+          <View key={i} style={styles.riga}>
+            <TextInput
+              style={styles.campo}
+              label={`Opzione ${i + 1}`}
+              mode="outlined"
+              dense
+              value={o}
+              onChangeText={(t) => cambiaOpzione(i, t)}
+            />
+            <IconButton icon="close" onPress={() => setOpzioni(opzioni.filter((_, j) => j !== i))} />
+          </View>
+        ))}
+        <Button mode="text" icon="plus" onPress={() => setOpzioni([...opzioni, ''])} style={styles.sinistra}>
+          Aggiungi opzione
+        </Button>
+      </Riquadro>
 
-      <TextInput
-        label="Scadenza (facoltativa, gg/mm/aaaa)"
-        mode="outlined"
-        value={scadenza}
-        onChangeText={setScadenza}
-        keyboardType="numbers-and-punctuation"
-      />
-      <HelperText type="error" visible={!!errore}>
-        {errore}
-      </HelperText>
-      <Button mode="contained" onPress={crea} loading={inCorso} disabled={inCorso}>
+      <Riquadro>
+        <Text variant="titleSmall">Scadenza</Text>
+        <TextInput
+          label="Facoltativa, gg/mm/aaaa"
+          mode="outlined"
+          value={scadenza}
+          onChangeText={setScadenza}
+          keyboardType="numbers-and-punctuation"
+          left={<TextInput.Icon icon="calendar" />}
+        />
+        <Nota>Si potrà votare fino alle 23:59 di quel giorno. Puoi anche chiudere la votazione a mano.</Nota>
+      </Riquadro>
+
+      <Errore testo={errore} />
+      <Button mode="contained" icon="check" onPress={crea} loading={inCorso} disabled={inCorso} contentStyle={styles.alto}>
         Crea sondaggio
       </Button>
     </Pagina>
@@ -128,4 +144,6 @@ export default function NuovoSondaggio() {
 const styles = StyleSheet.create({
   riga: { flexDirection: 'row', alignItems: 'center' },
   campo: { flex: 1 },
+  sinistra: { alignSelf: 'flex-start' },
+  alto: { height: 48 },
 });

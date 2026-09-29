@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Button, Text } from 'react-native-paper';
 
-import { Pagina } from '@/components/Pagina';
+import { Benvenuto } from '@/components/Benvenuto';
 import { useAuth } from '@/lib/auth';
 
 export default function InAttesa() {
@@ -16,18 +16,16 @@ export default function InAttesa() {
   }
 
   return (
-    <Pagina centrata>
-      <Text variant="headlineSmall">In attesa di approvazione</Text>
+    <Benvenuto titolo="Quasi fatto!" testo={`Ciao${profilo?.nome ? ` ${profilo.nome}` : ''}, la tua registrazione è arrivata.`}>
       <Text variant="bodyMedium">
-        Ciao{profilo?.nome ? ` ${profilo.nome}` : ''}, la tua registrazione è arrivata.
-        L’amministratore deve approvarla prima che tu possa usare l’app.
+        L’amministratore deve approvarla prima che tu possa usare l’app. Riprova più tardi.
       </Text>
-      <Button mode="contained" onPress={controlla} loading={inCorso} disabled={inCorso}>
+      <Button mode="contained" icon="refresh" onPress={controlla} loading={inCorso} disabled={inCorso}>
         Controlla di nuovo
       </Button>
       <Button mode="text" onPress={esci}>
         Esci
       </Button>
-    </Pagina>
+    </Benvenuto>
   );
 }

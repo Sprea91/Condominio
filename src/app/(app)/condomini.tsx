@@ -2,12 +2,15 @@
 // assegna appartamento e millesimi, controlla che il totale faccia 1000.
 import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet } from 'react-native';
-import { ActivityIndicator, Banner, Text } from 'react-native-paper';
+import { ActivityIndicator, Icon, Text } from 'react-native-paper';
 
 import { Pagina } from '@/components/Pagina';
 import { SchedaCondomino } from '@/components/SchedaCondomino';
+import { Errore, Nota, Riquadro, Titoletto } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
+import { millesimi as millesimiFmt } from '@/lib/formato';
 import { supabase } from '@/lib/supabase';
+import { useTinte } from '@/lib/tema';
 import type { Profilo } from '@/lib/tipi';
 
 // Ordina "1, 2, 10" come numeri e non come testo ("1, 10, 2")
@@ -17,6 +20,7 @@ function perAppartamento(a: Profilo, b: Profilo) {
 
 export default function Condomini() {
   const { profilo: io, ricaricaProfilo } = useAuth();
+  const tinte = useTinte();
   const [profili, setProfili] = useState<Profilo[] | null>(null);
   const [errore, setErrore] = useState('');
 
@@ -46,35 +50,47 @@ export default function Condomini() {
   const totaleOk = Math.abs(totaleMillesimi - 1000) < 0.001;
 
   return (
-    <Pagina titolo="Gestione condòmini">
-        {!!errore && <Text style={styles.errore}>{errore}</Text>}
-        {profili === null && !errore && <ActivityIndicator />}
+    <Pagina titolo="Gestione condòmini" sottotitolo={profili ? `${attivi.length} attivi · ${inAttesa.length} in attesa` : undefined}>
+      <Errore testo={errore} />
+      {profili === null && !errore && <ActivityIndicator style={styles.caricamento} />}
 
-        {profili !== null && (
-          <>
-            <Text variant="titleMedium">In attesa di approvazione ({inAttesa.length})</Text>
-            {inAttesa.length === 0 && <Text variant="bodyMedium">Nessuna richiesta.</Text>}
-            {inAttesa.map((p) => (
-              <SchedaCondomino key={p.id} profilo={p} sonoIo={p.id === io?.id} onModificato={dopoModifica} />
-            ))}
+      {profili !== null && (
+        <>
+          <Titoletto>In attesa di approvazione</Titoletto>
+          {inAttesa.length === 0 && <Nota>Nessuna richiesta in sospeso.</Nota>}
+          {inAttesa.map((p) => (
+            <SchedaCondomino key={p.id} profilo={p} sonoIo={p.id === io?.id} onModificato={dopoModifica} />
+          ))}
 
-            <Text variant="titleMedium" style={styles.titolo}>
-              Condòmini attivi ({attivi.length})
+          <Titoletto>Condòmini attivi</Titoletto>
+          <Riquadro
+            style={[
+              styles.riga,
+              { backgroundColor: (totaleOk ? tinte.verde : tinte.arancio).sfondo, borderColor: (totaleOk ? tinte.verde : tinte.arancio).sfondo },
+            ]}
+          >
+            <Icon
+              source={totaleOk ? 'check-circle-outline' : 'alert-outline'}
+              size={22}
+              color={(totaleOk ? tinte.verde : tinte.arancio).testo}
+            />
+            <Text variant="titleSmall" style={[styles.flex, { color: (totaleOk ? tinte.verde : tinte.arancio).testo }]}>
+              {totaleOk
+                ? 'Totale millesimi: 1000'
+                : `Totale millesimi: ${millesimiFmt(totaleMillesimi)} (dovrebbe essere 1000)`}
             </Text>
-            <Banner visible={!totaleOk} icon="alert">
-              {`Il totale dei millesimi è ${totaleMillesimi.toLocaleString('it-IT')} invece di 1000.`}
-            </Banner>
-            {totaleOk && <Text variant="bodyMedium">Totale millesimi: 1000 ✓</Text>}
-            {attivi.map((p) => (
-              <SchedaCondomino key={p.id} profilo={p} sonoIo={p.id === io?.id} onModificato={dopoModifica} />
-            ))}
-          </>
-        )}
+          </Riquadro>
+          {attivi.map((p) => (
+            <SchedaCondomino key={p.id} profilo={p} sonoIo={p.id === io?.id} onModificato={dopoModifica} />
+          ))}
+        </>
+      )}
     </Pagina>
   );
 }
 
 const styles = StyleSheet.create({
-  titolo: { marginTop: 16 },
-  errore: { color: '#B3261E' },
+  caricamento: { marginTop: 32 },
+  riga: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  flex: { flex: 1 },
 });

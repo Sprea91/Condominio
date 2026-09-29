@@ -1,9 +1,10 @@
 // Schermata di accesso con email e password.
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Button, HelperText, Text, TextInput } from 'react-native-paper';
+import { Button, TextInput } from 'react-native-paper';
 
-import { Pagina } from '@/components/Pagina';
+import { Benvenuto, CampoPassword } from '@/components/Benvenuto';
+import { Errore } from '@/components/ui';
 import { messaggioErrore } from '@/lib/errori';
 import { supabase } from '@/lib/supabase';
 
@@ -27,10 +28,7 @@ export default function Accedi() {
   }
 
   return (
-    <Pagina centrata>
-      <Text variant="headlineMedium">Condominio</Text>
-      <Text variant="bodyMedium">Accedi con la tua email e password.</Text>
-
+    <Benvenuto titolo="Condominio" testo="Avvisi, guasti, sondaggi e conti del tuo condominio.">
       <TextInput
         label="Email"
         mode="outlined"
@@ -39,24 +37,19 @@ export default function Accedi() {
         autoCapitalize="none"
         autoComplete="email"
         keyboardType="email-address"
+        left={<TextInput.Icon icon="email-outline" />}
       />
-      <TextInput
-        label="Password"
-        mode="outlined"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        autoComplete="current-password"
-        onSubmitEditing={accedi}
-      />
-      <HelperText type="error" visible={!!errore}>
-        {errore}
-      </HelperText>
-
-      <Button mode="contained" onPress={accedi} loading={inCorso} disabled={inCorso}>
+      <CampoPassword label="Password" value={password} onChangeText={setPassword} onSubmitEditing={accedi} />
+      <Errore testo={errore} />
+      <Button mode="contained" onPress={accedi} loading={inCorso} disabled={inCorso} contentStyle={{ height: 48 }}>
         Accedi
       </Button>
-      <Button mode="text" onPress={() => router.replace('/registrati')}>Non hai un account? Registrati</Button>
-    </Pagina>
+      <Button mode="text" compact onPress={() => router.push('/recupera-password')}>
+        Password dimenticata?
+      </Button>
+      <Button mode="outlined" onPress={() => router.replace('/registrati')}>
+        Non hai un account? Registrati
+      </Button>
+    </Benvenuto>
   );
 }

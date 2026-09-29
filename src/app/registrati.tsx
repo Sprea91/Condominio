@@ -3,13 +3,16 @@
 // l'account resta "in attesa" finché l'amministratore non lo approva.
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Button, HelperText, Text, TextInput } from 'react-native-paper';
+import { StyleSheet } from 'react-native';
+import { Button, Text, TextInput, useTheme } from 'react-native-paper';
 
-import { Pagina } from '@/components/Pagina';
+import { Benvenuto, CampoPassword } from '@/components/Benvenuto';
+import { Errore } from '@/components/ui';
 import { messaggioErrore } from '@/lib/errori';
 import { supabase } from '@/lib/supabase';
 
 export default function Registrati() {
+  const tema = useTheme();
   const [nome, setNome] = useState('');
   const [appartamento, setAppartamento] = useState('');
   const [email, setEmail] = useState('');
@@ -44,30 +47,37 @@ export default function Registrati() {
 
   if (inviata) {
     return (
-      <Pagina centrata>
-        <Text variant="headlineSmall">Controlla la tua email</Text>
+      <Benvenuto titolo="Controlla la tua email">
         <Text variant="bodyMedium">
-          Ti abbiamo inviato un link a {email.trim()}. Aprilo per confermare l’indirizzo, poi
-          accedi. Se non trovi l’email, guarda anche nella posta indesiderata.
+          Ti abbiamo inviato un link a <Text style={styles.grassetto}>{email.trim()}</Text>. Aprilo per confermare
+          l’indirizzo, poi accedi.
         </Text>
-        <Button mode="contained" onPress={() => router.replace('/accedi')}>Vai all’accesso</Button>
-      </Pagina>
+        <Text variant="bodySmall" style={{ color: tema.colors.onSurfaceVariant }}>
+          Non la trovi? Guarda nella posta indesiderata.
+        </Text>
+        <Button mode="contained" onPress={() => router.replace('/accedi')}>
+          Vai all’accesso
+        </Button>
+      </Benvenuto>
     );
   }
 
   return (
-    <Pagina centrata>
-      <Text variant="headlineMedium">Registrati</Text>
-      <Text variant="bodyMedium">
-        Dopo la registrazione l’amministratore dovrà approvare il tuo account.
-      </Text>
-
-      <TextInput label="Nome e cognome" mode="outlined" value={nome} onChangeText={setNome} autoComplete="name" />
+    <Benvenuto titolo="Crea il tuo account" testo="Dopo la registrazione l’amministratore dovrà approvarti.">
+      <TextInput
+        label="Nome e cognome"
+        mode="outlined"
+        value={nome}
+        onChangeText={setNome}
+        autoComplete="name"
+        left={<TextInput.Icon icon="account-outline" />}
+      />
       <TextInput
         label="Numero appartamento"
         mode="outlined"
         value={appartamento}
         onChangeText={setAppartamento}
+        left={<TextInput.Icon icon="door" />}
       />
       <TextInput
         label="Email"
@@ -77,24 +87,27 @@ export default function Registrati() {
         autoCapitalize="none"
         autoComplete="email"
         keyboardType="email-address"
+        left={<TextInput.Icon icon="email-outline" />}
       />
-      <TextInput
+      <CampoPassword
         label="Password (almeno 6 caratteri)"
-        mode="outlined"
         value={password}
         onChangeText={setPassword}
-        secureTextEntry
-        autoComplete="new-password"
         onSubmitEditing={registrati}
+        nuova
       />
-      <HelperText type="error" visible={!!errore}>
-        {errore}
-      </HelperText>
-
-      <Button mode="contained" onPress={registrati} loading={inCorso} disabled={inCorso}>
+      <Errore testo={errore} />
+      <Button mode="contained" onPress={registrati} loading={inCorso} disabled={inCorso} contentStyle={styles.alto}>
         Registrati
       </Button>
-      <Button mode="text" onPress={() => router.replace('/accedi')}>Hai già un account? Accedi</Button>
-    </Pagina>
+      <Button mode="text" onPress={() => router.replace('/accedi')}>
+        Hai già un account? Accedi
+      </Button>
+    </Benvenuto>
   );
 }
+
+const styles = StyleSheet.create({
+  grassetto: { fontWeight: 'bold' },
+  alto: { height: 48 },
+});
