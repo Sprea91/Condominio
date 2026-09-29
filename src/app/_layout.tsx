@@ -18,6 +18,7 @@ import { ActivityIndicator, PaperProvider, useTheme } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider, useAuth } from '@/lib/auth';
+import '@/lib/installa'; // registra subito l'evento "Installa app" del browser
 import { useTemaDiSistema } from '@/lib/tema';
 
 function Navigazione() {
@@ -54,6 +55,9 @@ function Navigazione() {
         <Stack.Screen name="registrati" />
         <Stack.Screen name="recupera-password" />
       </Stack.Protected>
+
+      {/* La guida si apre sempre, anche senza account (in fondo: la prima schermata disponibile è quella di partenza) */}
+      <Stack.Screen name="guida" />
     </Stack>
   );
 }

@@ -50,6 +50,9 @@ export default function Accedi() {
       <Button mode="outlined" onPress={() => router.replace('/registrati')}>
         Non hai un account? Registrati
       </Button>
+      <Button mode="text" icon="help-circle-outline" onPress={() => router.push('/guida')}>
+        Come installare e usare l’app
+      </Button>
     </Benvenuto>
   );
 }

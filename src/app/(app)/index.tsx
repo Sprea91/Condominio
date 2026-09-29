@@ -43,6 +43,7 @@ const ALTRE: { titolo: string; dettaglio: string; icona: string; tinta: NomeTint
   { titolo: 'Scadenze', dettaglio: 'Revisioni, polizze, manutenzioni', icona: 'calendar-alert', tinta: 'rosso', link: '/scadenze' },
   { titolo: 'Documenti', dettaglio: 'Regolamento, polizze, contratti', icona: 'folder-outline', tinta: 'blu', link: '/documenti' },
   { titolo: 'Storico lavori', dettaglio: 'Interventi, fatture e garanzie', icona: 'hammer-wrench', tinta: 'arancio', link: '/lavori' },
+  { titolo: 'Guida', dettaglio: 'Come installare e usare l’app', icona: 'help-circle-outline', tinta: 'grigio', link: '/guida' },
   { titolo: 'Numeri utili', dettaglio: 'Idraulico, elettricista, emergenze', icona: 'phone-outline', tinta: 'verde', link: '/numeri' },
 ];
 
