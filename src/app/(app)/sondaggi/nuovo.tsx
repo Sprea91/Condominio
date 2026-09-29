@@ -24,6 +24,7 @@ export default function NuovoSondaggio() {
   const [descrizione, setDescrizione] = useState('');
   const [modalita, setModalita] = useState<ModalitaVoto>('millesimi');
   const [preventivi, setPreventivi] = useState(false);
+  const [documenti, setDocumenti] = useState<FileScelto[]>([]);
   const [multipla, setMultipla] = useState(false);
   const [maxScelte, setMaxScelte] = useState('');
   const [opzioni, setOpzioni] = useState<Opzione[]>([vuota('Favorevole'), vuota('Contrario'), vuota('Astenuto')]);
@@ -109,6 +110,14 @@ export default function NuovoSondaggio() {
       }
       const { error: e } = await supabase.from('sondaggi_opzioni').insert(righe);
       if (e) throw new Error(e.message);
+      // Documenti da consultare prima di votare (tabella di supabase/15-...sql)
+      for (const f of documenti) {
+        const percorso = await caricaFile('documenti', `sondaggi/${sondaggio.id}`, f);
+        const { error: ea } = await supabase
+          .from('sondaggi_allegati')
+          .insert({ sondaggio_id: sondaggio.id, percorso, nome_file: f.nome, tipo_mime: f.tipo });
+        if (ea) throw new Error(ea.message);
+      }
       router.replace(`/sondaggi/${sondaggio.id}`);
     } catch (e) {
       setErrore(`Errore: ${(e as Error).message}`);
@@ -139,6 +148,12 @@ export default function NuovoSondaggio() {
           multiline
           numberOfLines={4}
         />
+      </Riquadro>
+
+      <Riquadro>
+        <Text variant="titleSmall">Documenti da consultare</Text>
+        <Nota>PDF o foto che i condòmini potranno aprire prima di votare (es. relazione tecnica, planimetria).</Nota>
+        <SceltaFile file={documenti} onCambia={setDocumenti} tipi={TIPI_DOCUMENTO} etichetta="Allega documenti" />
       </Riquadro>
 
       <Riquadro>

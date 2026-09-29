@@ -6,11 +6,13 @@ import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Button, Icon, Text, useTheme } from 'react-native-paper';
 
+import { Allegati } from '@/components/Allegati';
 import { BottoneConferma } from '@/components/BottoneConferma';
 import { Pagina } from '@/components/Pagina';
+import { SceltaFile } from '@/components/SceltaFile';
 import { Errore, Etichetta, IconaTonda, Nota, Riquadro, Titoletto } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
-import { apriFile } from '@/lib/file';
+import { apriFile, caricaFile, eliminaFile, TIPI_DOCUMENTO, type FileScelto } from '@/lib/file';
 import { dataOra, euro, millesimi } from '@/lib/formato';
 import { aperto } from '@/lib/sondaggi';
 import { supabase } from '@/lib/supabase';
@@ -33,6 +35,81 @@ function Barra({ quota, colore, sfondo }: { quota: number; colore: string; sfond
     <View style={[styles.barra, { backgroundColor: sfondo }]}>
       <View style={[styles.riempimento, { width: `${Math.round(quota * 100)}%`, backgroundColor: colore }]} />
     </View>
+  );
+}
+
+// Documenti allegati al sondaggio: si aprono con un tocco; l'amministratore può aggiungerne
+function DocumentiSondaggio({ sondaggioId, admin }: { sondaggioId: string; admin: boolean }) {
+  const [nuovi, setNuovi] = useState<FileScelto[]>([]);
+  const [inCorso, setInCorso] = useState(false);
+  const [errore, setErrore] = useState('');
+  const leggi = useCallback(
+    () =>
+      supabase
+        .from('sondaggi_allegati')
+        .select('*')
+        .eq('sondaggio_id', sondaggioId)
+        .order('creato_il')
+        .returns<{ id: string; percorso: string; nome_file: string; tipo_mime: string }[]>(),
+    [sondaggioId],
+  );
+  const { dati, errore: erroreLettura, ricarica } = useDati(leggi);
+
+  async function carica() {
+    setErrore('');
+    setInCorso(true);
+    try {
+      for (const f of nuovi) {
+        const percorso = await caricaFile('documenti', `sondaggi/${sondaggioId}`, f);
+        const { error } = await supabase
+          .from('sondaggi_allegati')
+          .insert({ sondaggio_id: sondaggioId, percorso, nome_file: f.nome, tipo_mime: f.tipo });
+        if (error) throw new Error(error.message);
+      }
+      setNuovi([]);
+      ricarica();
+    } catch (e) {
+      setErrore(`Errore: ${(e as Error).message}`);
+    } finally {
+      setInCorso(false);
+    }
+  }
+
+  async function elimina(a: { id: string; percorso: string }) {
+    await eliminaFile('documenti', [a.percorso]);
+    await supabase.from('sondaggi_allegati').delete().eq('id', a.id);
+    ricarica();
+  }
+
+  // Tabella non ancora creata (supabase/15-...sql): la sezione non si mostra
+  if (erroreLettura || (!dati?.length && !admin)) return null;
+
+  return (
+    <>
+      <Titoletto>Documenti da consultare</Titoletto>
+      <Riquadro>
+        {!dati?.length && <Nota>Nessun documento allegato.</Nota>}
+        <Allegati bucket="documenti" file={(dati ?? []).map((a) => ({ percorso: a.percorso, nome: a.nome_file, tipo: a.tipo_mime }))} />
+        {admin &&
+          (dati ?? []).map((a) => (
+            <View key={a.id} style={styles.rigaRisultato}>
+              <Nota style={styles.flex}>{a.nome_file}</Nota>
+              <BottoneConferma etichetta="" conferma="Elimina" onConferma={() => elimina(a)} />
+            </View>
+          ))}
+        {admin && (
+          <>
+            <SceltaFile file={nuovi} onCambia={setNuovi} tipi={TIPI_DOCUMENTO} etichetta="Aggiungi documenti" />
+            {nuovi.length > 0 && (
+              <Button mode="contained" onPress={carica} loading={inCorso} disabled={inCorso}>
+                Carica {nuovi.length} file
+              </Button>
+            )}
+            <Errore testo={errore} />
+          </>
+        )}
+      </Riquadro>
+    </>
   );
 }
 
@@ -186,6 +263,9 @@ export default function DettaglioSondaggio() {
         )}
         {s.scadenza && <Nota>{`${votabile ? 'Si vota fino al' : 'Scaduto il'} ${dataOra(s.scadenza)}`}</Nota>}
       </Riquadro>
+
+      {/* Documenti da consultare */}
+      <DocumentiSondaggio sondaggioId={s.id} admin={admin} />
 
       {/* Voto */}
       {mostraVoto && (
