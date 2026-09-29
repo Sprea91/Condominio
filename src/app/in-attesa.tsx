@@ -20,7 +20,7 @@ export default function InAttesa() {
       <Text variant="headlineSmall">In attesa di approvazione</Text>
       <Text variant="bodyMedium">
         Ciao{profilo?.nome ? ` ${profilo.nome}` : ''}, la tua registrazione è arrivata.
-        L'amministratore deve approvarla prima che tu possa usare l'app.
+        L’amministratore deve approvarla prima che tu possa usare l’app.
       </Text>
       <Button mode="contained" onPress={controlla} loading={inCorso} disabled={inCorso}>
         Controlla di nuovo

@@ -18,9 +18,10 @@ const AuthContext = createContext<StatoAuth | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
-  const [profilo, setProfilo] = useState<Profilo | null>(null);
+  const [profiloLetto, setProfiloLetto] = useState<Profilo | null>(null);
+  // id dell'utente di cui è stato letto il profilo (serve a sapere se è ancora da caricare)
+  const [profiloLettoPer, setProfiloLettoPer] = useState<string | null>(null);
   const [sessioneLetta, setSessioneLetta] = useState(false);
-  const [profiloLetto, setProfiloLetto] = useState(false);
 
   // 1. Legge la sessione salvata e resta in ascolto di login/logout
   useEffect(() => {
@@ -37,19 +38,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const userId = session?.user.id;
 
   const ricaricaProfilo = useCallback(async () => {
-    if (!userId) {
-      setProfilo(null);
-      setProfiloLetto(true);
-      return;
-    }
+    if (!userId) return;
     const { data } = await supabase.from('profili').select('*').eq('id', userId).maybeSingle();
-    setProfilo((data as Profilo | null) ?? null);
-    setProfiloLetto(true);
+    setProfiloLetto((data as Profilo | null) ?? null);
+    setProfiloLettoPer(userId);
   }, [userId]);
 
   // 2. Quando cambia l'utente collegato, rilegge il suo profilo
   useEffect(() => {
-    setProfiloLetto(false);
+    // Lettura dal database: lo stato cambia solo quando arrivano i dati (dopo l'await)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     ricaricaProfilo();
   }, [ricaricaProfilo]);
 
@@ -57,7 +55,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
   }, []);
 
-  const caricamento = !sessioneLetta || !profiloLetto;
+  // Il profilo vale solo se appartiene all'utente collegato adesso
+  const profilo = userId && profiloLettoPer === userId ? profiloLetto : null;
+  const caricamento = !sessioneLetta || (!!userId && profiloLettoPer !== userId);
 
   return (
     <AuthContext.Provider value={{ session, profilo, caricamento, ricaricaProfilo, esci }}>

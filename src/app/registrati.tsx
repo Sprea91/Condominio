@@ -47,10 +47,10 @@ export default function Registrati() {
       <Pagina centrata>
         <Text variant="headlineSmall">Controlla la tua email</Text>
         <Text variant="bodyMedium">
-          Ti abbiamo inviato un link a {email.trim()}. Aprilo per confermare l'indirizzo, poi
-          accedi. Se non trovi l'email, guarda anche nella posta indesiderata.
+          Ti abbiamo inviato un link a {email.trim()}. Aprilo per confermare l’indirizzo, poi
+          accedi. Se non trovi l’email, guarda anche nella posta indesiderata.
         </Text>
-        <Button mode="contained" onPress={() => router.replace('/accedi')}>Vai all'accesso</Button>
+        <Button mode="contained" onPress={() => router.replace('/accedi')}>Vai all’accesso</Button>
       </Pagina>
     );
   }
@@ -59,7 +59,7 @@ export default function Registrati() {
     <Pagina centrata>
       <Text variant="headlineMedium">Registrati</Text>
       <Text variant="bodyMedium">
-        Dopo la registrazione l'amministratore dovrà approvare il tuo account.
+        Dopo la registrazione l’amministratore dovrà approvare il tuo account.
       </Text>
 
       <TextInput label="Nome e cognome" mode="outlined" value={nome} onChangeText={setNome} autoComplete="name" />

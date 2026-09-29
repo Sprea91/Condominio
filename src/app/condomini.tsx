@@ -31,6 +31,8 @@ export default function Condomini() {
   }, []);
 
   useEffect(() => {
+    // Lettura dal database: lo stato cambia solo quando arrivano i dati (dopo l'await)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     carica();
   }, [carica]);
 
