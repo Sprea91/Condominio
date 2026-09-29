@@ -26,7 +26,14 @@ export function CardSaldo({
         <Text variant="labelLarge" style={styles.tenue}>
           {etichetta}
         </Text>
-        {onPress && <Icon source="chevron-right" size={22} color={BIANCO} />}
+        {onPress && (
+          <View style={styles.dettagli}>
+            <Text variant="labelMedium" style={styles.bianco}>
+              Entrate e uscite
+            </Text>
+            <Icon source="chevron-right" size={18} color={BIANCO} />
+          </View>
+        )}
       </View>
       <Text variant="displaySmall" style={styles.bianco}>
         {importo}
@@ -51,6 +58,15 @@ const styles = StyleSheet.create({
   card: { borderRadius: 24, padding: 20, gap: 6, overflow: 'hidden' },
   riga: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   bianco: { color: BIANCO },
+  dettagli: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderRadius: 999,
+    paddingLeft: 10,
+    paddingRight: 4,
+    paddingVertical: 3,
+  },
   tenue: { color: BIANCO, opacity: 0.85 },
   cerchio: { position: 'absolute', borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.08)' },
   cerchioGrande: { width: 180, height: 180, right: -50, top: -70 },

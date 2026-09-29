@@ -1,5 +1,5 @@
 // Bacheca avvisi: comunicazioni ufficiali con allegati.
-// Quelli "in evidenza" stanno in cima; quelli arrivati dopo l'ultima visita hanno l'etichetta "Nuovo".
+// Quelli "in evidenza" stanno in cima qui e compaiono anche nella Home di tutti; quelli arrivati dopo l'ultima visita hanno l'etichetta "Nuovo".
 // L'amministratore può pubblicarli, fissarli in alto ed eliminarli.
 import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
@@ -81,7 +81,7 @@ export default function Avvisi() {
           <Riquadro key={a.id} evidenziato={!!a.in_evidenza}>
             {(a.in_evidenza || nuovo) && (
               <View style={styles.etichette}>
-                {a.in_evidenza && <Etichetta testo="In evidenza" tinta={tinte.blu} icona="pin" />}
+                {a.in_evidenza && <Etichetta testo="In evidenza nella Home" tinta={tinte.blu} icona="pin" />}
                 {nuovo && <Etichetta testo="Nuovo" tinta={tinte.verde} icona="star-four-points" />}
               </View>
             )}
@@ -99,7 +99,7 @@ export default function Avvisi() {
             {admin && (
               <View style={styles.azioni}>
                 <Button compact icon={a.in_evidenza ? 'pin-off-outline' : 'pin-outline'} onPress={() => evidenzia(a)}>
-                  {a.in_evidenza ? 'Togli evidenza' : 'Metti in evidenza'}
+                  {a.in_evidenza ? 'Togli dalla Home' : 'Metti in evidenza nella Home'}
                 </Button>
                 <BottoneConferma etichetta="Elimina" conferma="Elimina avviso" onConferma={() => elimina(a)} />
               </View>

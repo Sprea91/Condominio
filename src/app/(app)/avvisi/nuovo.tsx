@@ -64,8 +64,8 @@ export default function NuovoAvviso() {
         />
         <View style={styles.riga}>
           <View style={styles.flex}>
-            <Text variant="titleSmall">In evidenza</Text>
-            <Nota>Resta fissato in cima alla bacheca</Nota>
+            <Text variant="titleSmall">In evidenza nella Home</Text>
+            <Nota>Compare in cima alla Home di tutti i condòmini</Nota>
           </View>
           <Switch value={inEvidenza} onValueChange={setInEvidenza} />
         </View>

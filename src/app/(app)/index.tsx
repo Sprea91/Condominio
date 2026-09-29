@@ -16,10 +16,13 @@ import { useTinte, type Tinta } from '@/lib/tema';
 import type { Sondaggio } from '@/lib/tipi';
 import { useDati } from '@/lib/useDati';
 
+type AvvisoBreve = { id: string; titolo: string; testo: string; creato_il: string; in_evidenza?: boolean };
+
 type Riepilogo = {
   saldo: number;
   avvisiNuovi: number;
-  ultimoAvviso: { id: string; titolo: string; creato_il: string } | null;
+  ultimoAvviso: AvvisoBreve | null;
+  inEvidenza: AvvisoBreve[];
   guastiAperti: number;
   sondaggiDaVotare: number;
   inAttesa: number;
@@ -80,7 +83,7 @@ export default function Home() {
     const id = profilo?.id ?? '';
     const [s, a, g, so, v, p] = await Promise.all([
       supabase.from('saldo').select('saldo').maybeSingle(),
-      supabase.from('avvisi').select('id, titolo, creato_il').order('creato_il', { ascending: false }),
+      supabase.from('avvisi').select('*').order('creato_il', { ascending: false }),
       supabase.from('guasti').select('stato').neq('stato', 'chiuso'),
       supabase.from('sondaggi').select('id, chiuso, scadenza'),
       supabase.from('voti').select('sondaggio_id').eq('utente_id', id),
@@ -93,7 +96,8 @@ export default function Home() {
     const dati: Riepilogo = {
       saldo: Number(s.data?.saldo ?? 0),
       avvisiNuovi: (a.data ?? []).filter((x) => !visita || x.creato_il > visita).length,
-      ultimoAvviso: a.data?.[0] ?? null,
+      ultimoAvviso: (a.data?.[0] as AvvisoBreve | undefined) ?? null,
+      inEvidenza: ((a.data ?? []) as AvvisoBreve[]).filter((x) => x.in_evidenza),
       guastiAperti: g.data?.length ?? 0,
       sondaggiDaVotare: ((so.data ?? []) as Sondaggio[]).filter((x) => aperto(x) && !votati.has(x.id)).length,
       inAttesa: p.count ?? 0,
@@ -119,7 +123,35 @@ export default function Home() {
         </Pressable>
       </View>
 
-      {/* Saldo */}
+      {/* Avvisi in evidenza (li sceglie l'amministratore dalla bacheca) */}
+      {dati?.inEvidenza.map((a) => (
+        <Riquadro
+          key={a.id}
+          onPress={() => router.push('/avvisi')}
+          style={{ backgroundColor: tinte.blu.sfondo, borderColor: tinte.blu.sfondo }}
+        >
+          <View style={styles.rigaAvviso}>
+            <Icon source="pin" size={18} color={tinte.blu.testo} />
+            <Text variant="labelLarge" style={[styles.flex, styles.maiuscolo, { color: tinte.blu.testo }]}>
+              In evidenza
+            </Text>
+            <Text variant="labelSmall" style={{ color: tinte.blu.testo }}>
+              {dataOra(a.creato_il)}
+            </Text>
+          </View>
+          <Text variant="titleLarge" style={{ color: tinte.blu.testo }}>
+            {a.titolo}
+          </Text>
+          <Text variant="bodyMedium" numberOfLines={3} style={{ color: tinte.blu.testo }}>
+            {a.testo}
+          </Text>
+          <Text variant="labelLarge" style={{ color: tinte.blu.testo }}>
+            Leggi tutto ›
+          </Text>
+        </Riquadro>
+      ))}
+
+      {/* Saldo: porta al conto spese */}
       <CardSaldo
         etichetta="Saldo del condominio"
         importo={dati ? euro(dati.saldo) : '—'}
@@ -163,11 +195,10 @@ export default function Home() {
           conteggio={dati?.sondaggiDaVotare}
           link="/sondaggi"
         />
-        <TesseraSezione titolo="Spese" dettaglio="Entrate e uscite" icona="wallet-outline" tinta={tinte.verde} link="/spese" />
       </View>
 
-      {/* Ultimo avviso */}
-      {dati?.ultimoAvviso && (
+      {/* Ultimo avviso (se non è già mostrato in evidenza) */}
+      {dati?.ultimoAvviso && !dati.ultimoAvviso.in_evidenza && (
         <>
           <Titoletto>Ultimo avviso</Titoletto>
           <Riquadro onPress={() => router.push('/avvisi')}>
@@ -199,6 +230,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   rigaAvviso: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   griglia: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  tessera: { flexBasis: '46%', flexGrow: 1, gap: 14 },
+  tessera: { flexBasis: '30%', flexGrow: 1, gap: 12, padding: 14 },
+  maiuscolo: { textTransform: 'uppercase', letterSpacing: 0.8 },
   rigaTessera: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
 });
