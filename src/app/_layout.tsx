@@ -17,6 +17,7 @@ import { StyleSheet, View } from 'react-native';
 import { ActivityIndicator, PaperProvider, useTheme } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { AvvisoAggiornamento } from '@/components/AvvisoAggiornamento';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import '@/lib/installa'; // registra subito l'evento "Installa app" del browser
 import { useTemaDiSistema } from '@/lib/tema';
@@ -73,6 +74,7 @@ export default function RootLayout() {
         {fontPronti ? (
           <AuthProvider>
             <Navigazione />
+            <AvvisoAggiornamento />
           </AuthProvider>
         ) : (
           <View style={[styles.attesa, { backgroundColor: tema.colors.background }]} />
