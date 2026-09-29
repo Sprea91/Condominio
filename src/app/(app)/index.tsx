@@ -437,8 +437,10 @@ export default function Home() {
         />
       </View>
 
-      {/* Ultimo avviso (se non è già mostrato in evidenza) */}
-      {dati?.ultimoAvviso && !dati.ultimoAvviso.in_evidenza && (
+      {/* Ultimo avviso: solo se non è già in alto (in evidenza o come appuntamento in arrivo) */}
+      {dati?.ultimoAvviso &&
+        !dati.ultimoAvviso.in_evidenza &&
+        !dati.appuntamenti.some((x) => x.id === dati.ultimoAvviso!.id) && (
         <>
           <Titoletto>Ultimo avviso</Titoletto>
           <Riquadro onPress={() => router.push('/avvisi')}>
