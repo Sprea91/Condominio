@@ -28,6 +28,8 @@ type Riepilogo = {
   inEvidenza: AvvisoBreve[];
   guastiAperti: number;
   sondaggiDaVotare: number;
+  // sondaggi aperti che scadono entro GIORNI_SONDAGGIO_IMMINENTE giorni
+  sondaggiInScadenza: { id: string; domanda: string; scadenza: string; votato: boolean }[];
   inAttesa: number;
   prossimaAssemblea: { id: string; titolo: string; data_ora: string; luogo: string | null } | null;
   miaRisposta: RispostaPresenza | null;
@@ -42,6 +44,9 @@ const ALTRE: { titolo: string; dettaglio: string; icona: string; tinta: NomeTint
   { titolo: 'Storico lavori', dettaglio: 'Interventi, fatture e garanzie', icona: 'hammer-wrench', tinta: 'arancio', link: '/lavori' },
   { titolo: 'Numeri utili', dettaglio: 'Idraulico, elettricista, emergenze', icona: 'phone-outline', tinta: 'verde', link: '/numeri' },
 ];
+
+// Un sondaggio "sta per scadere" se mancano meno di questi giorni
+const GIORNI_SONDAGGIO_IMMINENTE = 3;
 
 function saluto() {
   const ora = new Date().getHours();
@@ -102,7 +107,7 @@ export default function Home() {
       supabase.from('saldo').select('saldo').maybeSingle(),
       supabase.from('avvisi').select('*').order('creato_il', { ascending: false }),
       supabase.from('guasti').select('stato').neq('stato', 'chiuso'),
-      supabase.from('sondaggi').select('id, chiuso, scadenza'),
+      supabase.from('sondaggi').select('id, domanda, chiuso, scadenza'),
       supabase.from('voti').select('sondaggio_id').eq('utente_id', id),
       supabase.from('profili').select('id', { count: 'exact', head: true }).eq('approvato', false),
       supabase
@@ -127,6 +132,15 @@ export default function Home() {
       inEvidenza: ((a.data ?? []) as AvvisoBreve[]).filter((x) => x.in_evidenza),
       guastiAperti: g.data?.length ?? 0,
       sondaggiDaVotare: ((so.data ?? []) as Sondaggio[]).filter((x) => aperto(x) && !votati.has(x.id)).length,
+      sondaggiInScadenza: ((so.data ?? []) as Sondaggio[])
+        .filter(
+          (x) =>
+            aperto(x) &&
+            !!x.scadenza &&
+            new Date(x.scadenza).getTime() - Date.now() < GIORNI_SONDAGGIO_IMMINENTE * 86_400_000,
+        )
+        .sort((a, b) => a.scadenza!.localeCompare(b.scadenza!))
+        .map((x) => ({ id: x.id, domanda: x.domanda, scadenza: x.scadenza!, votato: votati.has(x.id) })),
       inAttesa: p.count ?? 0,
       prossimaAssemblea: asm.error ? null : (asm.data?.[0] ?? null),
       miaRisposta: null,
@@ -195,6 +209,31 @@ export default function Home() {
           </Text>
         </Riquadro>
       ))}
+
+      {/* Sondaggi in scadenza */}
+      {dati?.sondaggiInScadenza.map((so) => {
+        const t = so.votato ? tinte.verde : tinte.viola;
+        return (
+          <Riquadro
+            key={so.id}
+            onPress={() => router.push(`/sondaggi/${so.id}`)}
+            style={[styles.rigaAvviso, { backgroundColor: t.sfondo, borderColor: t.sfondo }]}
+          >
+            <Icon source={so.votato ? 'check-circle-outline' : 'vote-outline'} size={26} color={t.testo} />
+            <View style={styles.flex}>
+              <Text variant="labelMedium" style={{ color: t.testo }}>
+                {`Sondaggio · scade ${traQuanto(so.scadenza)} alle ${ora(so.scadenza)}`}
+              </Text>
+              <Text variant="titleSmall" numberOfLines={2} style={{ color: t.testo }}>
+                {so.domanda}
+              </Text>
+              <Text variant="labelLarge" style={{ color: t.testo }}>
+                {so.votato ? 'Hai già votato' : 'Vota ora ›'}
+              </Text>
+            </View>
+          </Riquadro>
+        );
+      })}
 
       {/* Prossima assemblea */}
       {dati?.prossimaAssemblea && (
