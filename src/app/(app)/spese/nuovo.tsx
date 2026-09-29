@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button, Chip, SegmentedButtons, Text, TextInput } from 'react-native-paper';
 
+import { CampoDitta } from '@/components/CampoDitta';
 import { CampoData } from '@/components/CampoData';
 import { Pagina } from '@/components/Pagina';
 import { SceltaFile } from '@/components/SceltaFile';
@@ -17,6 +18,7 @@ export default function NuovoMovimento() {
   const [giorno, setGiorno] = useState(oggi());
   const [descrizione, setDescrizione] = useState('');
   const [categoria, setCategoria] = useState('');
+  const [ditta, setDitta] = useState('');
   const [importo, setImporto] = useState('');
   const [file, setFile] = useState<FileScelto[]>([]);
   const [inCorso, setInCorso] = useState(false);
@@ -46,6 +48,8 @@ export default function NuovoMovimento() {
         data: dataDb,
         descrizione: descrizione.trim(),
         categoria: categoria.trim() || null,
+        // il fornitore si manda solo se scritto (colonna di supabase/16-...sql)
+        ...(ditta.trim() ? { ditta: ditta.trim() } : {}),
         importo: Math.round(valore * 100) / 100,
         giustificativo_path: percorso,
       });
@@ -85,6 +89,7 @@ export default function NuovoMovimento() {
           value={descrizione}
           onChangeText={setDescrizione}
         />
+        <CampoDitta label={tipo === 'uscita' ? 'Ditta / fornitore (facoltativo)' : 'Da chi (facoltativo)'} value={ditta} onChangeText={setDitta} />
         <CampoData label="Data" value={giorno} onChangeText={setGiorno} />
       </Riquadro>
 

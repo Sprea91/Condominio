@@ -225,6 +225,7 @@ export default function Spese() {
                     <Nota>
                       {data(m.data)}
                       {m.categoria ? ` · ${m.categoria}` : ''}
+                      {m.ditta ? ` · ${m.ditta}` : ''}
                     </Nota>
                   </View>
                   {m.giustificativo_path && (

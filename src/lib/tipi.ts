@@ -41,6 +41,7 @@ export type Guasto = {
   descrizione: string;
   stato: StatoGuasto;
   nota_admin: string | null;
+  ditta?: string | null; // ditta incaricata (supabase/16-...sql)
   autore_id: string | null;
   creato_il: string;
   aggiornato_il: string;
@@ -88,6 +89,7 @@ export type Movimento = {
   categoria: string | null;
   tipo: 'entrata' | 'uscita';
   importo: number;
+  ditta?: string | null; // fornitore (supabase/16-...sql)
   giustificativo_path: string | null;
 };
 

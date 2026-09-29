@@ -34,6 +34,8 @@ export default function LayoutApp() {
       <Stack.Screen name="preventivi/index" />
       <Stack.Screen name="preventivi/nuova" />
       <Stack.Screen name="preventivi/[id]" />
+      <Stack.Screen name="ditte/index" />
+      <Stack.Screen name="ditte/[nome]" />
 
       <Stack.Protected guard={admin}>
         <Stack.Screen name="condomini" />

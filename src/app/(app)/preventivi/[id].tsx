@@ -6,6 +6,7 @@ import { StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Button, SegmentedButtons, Text, TextInput } from 'react-native-paper';
 
 import { BottoneConferma } from '@/components/BottoneConferma';
+import { CampoDitta } from '@/components/CampoDitta';
 import { CampoData } from '@/components/CampoData';
 import { Pagina } from '@/components/Pagina';
 import { SceltaFile } from '@/components/SceltaFile';
@@ -73,7 +74,7 @@ function NuovoPreventivo({ richiestaId, onSalvato, onAnnulla }: { richiestaId: s
   return (
     <Riquadro evidenziato>
       <Text variant="titleSmall">Nuovo preventivo</Text>
-      <TextInput label="Ditta" mode="outlined" value={ditta} onChangeText={setDitta} left={<TextInput.Icon icon="domain" />} />
+      <CampoDitta value={ditta} onChangeText={setDitta} />
       <TextInput
         label="Importo in € (facoltativo)"
         mode="outlined"

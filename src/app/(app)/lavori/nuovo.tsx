@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button, SegmentedButtons, Text, TextInput } from 'react-native-paper';
 
+import { CampoDitta } from '@/components/CampoDitta';
 import { CampoData } from '@/components/CampoData';
 import { Pagina } from '@/components/Pagina';
 import { SceltaFile } from '@/components/SceltaFile';
@@ -109,13 +110,7 @@ export default function NuovoLavoro() {
             keyboardType="decimal-pad"
           />
         </View>
-        <TextInput
-          label="Ditta"
-          mode="outlined"
-          value={ditta}
-          onChangeText={setDitta}
-          left={<TextInput.Icon icon="domain" />}
-        />
+        <CampoDitta value={ditta} onChangeText={setDitta} />
         <CampoData label="Garanzia fino al (facoltativo)" value={garanzia} onChangeText={setGaranzia} svuotabile />
       </Riquadro>
       <Riquadro>

@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button, IconButton, SegmentedButtons, Switch, Text, TextInput, useTheme } from 'react-native-paper';
 
+import { CampoDitta } from '@/components/CampoDitta';
 import { CampoData } from '@/components/CampoData';
 import { Pagina } from '@/components/Pagina';
 import { SceltaFile } from '@/components/SceltaFile';
@@ -184,7 +185,7 @@ export default function NuovoSondaggio() {
                 </Text>
                 <IconButton icon="close" size={18} onPress={() => setOpzioni(opzioni.filter((_, j) => j !== i))} />
               </View>
-              <TextInput label="Ditta" mode="outlined" dense value={o.testo} onChangeText={(t) => cambia(i, { testo: t })} />
+              <CampoDitta dense value={o.testo} onChangeText={(t) => cambia(i, { testo: t })} />
               <TextInput
                 label="Importo in €"
                 mode="outlined"

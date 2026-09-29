@@ -6,6 +6,7 @@ import { ActivityIndicator, Button, Chip, IconButton, Text, TextInput, useTheme 
 
 import { BottoneConferma } from '@/components/BottoneConferma';
 import { CampoRicerca, corrisponde } from '@/components/CampoRicerca';
+import { CampoDitta } from '@/components/CampoDitta';
 import { Pagina } from '@/components/Pagina';
 import { BottoneNuovo, Errore, IconaTonda, Nota, Riquadro, Titoletto, Vuoto } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
@@ -74,7 +75,7 @@ function NuovoNumero({ onSalvato, onAnnulla }: { onSalvato: () => void; onAnnull
           </Chip>
         ))}
       </View>
-      <TextInput label="Nome (es. Idraulica Bianchi)" mode="outlined" value={nome} onChangeText={setNome} />
+      <CampoDitta label="Nome (es. Idraulica Bianchi)" value={nome} onChangeText={setNome} />
       <TextInput label="Telefono" mode="outlined" value={telefono} onChangeText={setTelefono} keyboardType="phone-pad" />
       <TextInput
         label="Email (facoltativa)"

@@ -7,6 +7,7 @@ import { ActivityIndicator, Avatar, Button, Icon, IconButton, SegmentedButtons, 
 
 import { Allegati } from '@/components/Allegati';
 import { BottoneConferma } from '@/components/BottoneConferma';
+import { CampoDitta } from '@/components/CampoDitta';
 import { Pagina } from '@/components/Pagina';
 import { SceltaFile } from '@/components/SceltaFile';
 import { Errore, Nota, Riquadro, Titoletto } from '@/components/ui';
@@ -64,6 +65,7 @@ function Avanzamento({ attuale }: { attuale: StatoGuasto }) {
 function AggiornaStato({ guasto, puoEliminare, onSalvato }: { guasto: Guasto; puoEliminare: boolean; onSalvato: () => void }) {
   const [nuovoStato, setNuovoStato] = useState<StatoGuasto>(guasto.stato);
   const [nota, setNota] = useState(guasto.nota_admin ?? '');
+  const [ditta, setDitta] = useState(guasto.ditta ?? '');
   const [inCorso, setInCorso] = useState(false);
   const [errore, setErrore] = useState('');
 
@@ -72,7 +74,12 @@ function AggiornaStato({ guasto, puoEliminare, onSalvato }: { guasto: Guasto; pu
     setInCorso(true);
     const { error } = await supabase
       .from('guasti')
-      .update({ stato: nuovoStato, nota_admin: nota.trim() || null })
+      .update({
+        stato: nuovoStato,
+        nota_admin: nota.trim() || null,
+        // la ditta si manda solo se la colonna esiste (supabase/16-...sql) o se è stata scritta
+        ...('ditta' in guasto || ditta.trim() ? { ditta: ditta.trim() || null } : {}),
+      })
       .eq('id', guasto.id);
     setInCorso(false);
     if (error) setErrore(`Errore: ${error.message}`);
@@ -101,6 +108,7 @@ function AggiornaStato({ guasto, puoEliminare, onSalvato }: { guasto: Guasto; pu
           onChangeText={setNota}
           multiline
         />
+        <CampoDitta label="Ditta incaricata (facoltativa)" value={ditta} onChangeText={setDitta} />
         <Errore testo={errore} />
         <View style={styles.azioni}>
           {puoEliminare && <BottoneConferma etichetta="Elimina" conferma="Elimina guasto" onConferma={elimina} />}
@@ -344,6 +352,12 @@ export default function DettaglioGuasto() {
       )}
 
       <Riquadro>
+        {!!g.ditta && (
+          <View style={styles.rigaNota}>
+            <Icon source="domain" size={18} color={tema.colors.onSurfaceVariant} />
+            <Text variant="bodyMedium">Ditta incaricata: {g.ditta}</Text>
+          </View>
+        )}
         <Text variant="titleSmall">Descrizione</Text>
         <Text variant="bodyLarge" style={styles.testo}>
           {g.descrizione}
