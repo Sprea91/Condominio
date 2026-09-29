@@ -184,27 +184,30 @@ export default function Guida() {
       <Titoletto>Le sezioni</Titoletto>
       <Capitolo titolo="Cosa trovi nell’app" icona="view-grid-outline">
         <Sezione icona="home-outline" titolo="Home">
-          Il saldo del condominio, gli avvisi importanti, la prossima assemblea, i sondaggi in scadenza e le rate da pagare.
-          In alto c’è la ricerca che cerca in tutte le sezioni.
+          Gli appuntamenti in arrivo (es. il sopralluogo dell’idraulico), gli avvisi importanti, la prossima assemblea, i
+          sondaggi in scadenza, le rate da pagare e il saldo del condominio. In alto c’è la ricerca che cerca in tutte le
+          sezioni.
         </Sezione>
         <Sezione icona="bullhorn-outline" titolo="Avvisi">
-          Le comunicazioni ufficiali, con eventuali PDF o foto. Quelli nuovi hanno l’etichetta “Nuovo”.
+          Le comunicazioni ufficiali, con eventuali PDF o foto. Quelli nuovi hanno l’etichetta “Nuovo”. Se un avviso ha un
+          appuntamento (giorno e ora), lo vedi in arancione e con l’icona del calendario lo salvi sul telefono.
         </Sezione>
         <Sezione icona="tools" titolo="Guasti">
           Hai notato un problema? Tocca “Segnala guasto”, descrivilo e aggiungi una foto. Puoi seguirne lo stato (aperto, in
           lavorazione, risolto) e commentare, per esempio “anche da me”.
         </Sezione>
         <Sezione icona="vote-outline" titolo="Sondaggi">
-          Vota le decisioni comuni. Alcuni si contano per testa, altri per millesimi; alcuni permettono più scelte. Puoi
-          cambiare voto finché il sondaggio è aperto. I risultati si vedono dopo aver votato.
+          Vota le decisioni comuni. Prima di votare puoi aprire i documenti allegati (relazioni, preventivi in PDF). Alcuni si
+          contano per testa, altri per millesimi; alcuni permettono più scelte. Puoi cambiare voto finché il sondaggio è
+          aperto. I risultati si vedono dopo aver votato.
         </Sezione>
         <Sezione icona="calendar-account-outline" titolo="Assemblee">
           Data, ora, luogo, ordine del giorno e documenti. Rispondi “Ci sarò / Non ci sarò / Delego” e salvala nel
           calendario del telefono. Dopo l’assemblea trovi qui il verbale.
         </Sezione>
         <Sezione icona="cash-multiple" titolo="Le mie rate">
-          Quanto devi pagare e entro quando, con l’IBAN da copiare. Dopo il bonifico tocca “Ho pagato” (puoi allegare la
-          ricevuta): l’amministratore confermerà. Le tue rate le vedi solo tu.
+          Quanto devi pagare e entro quando, con l’IBAN e la causale del bonifico da copiare. Dopo il bonifico tocca “Ho
+          pagato” (puoi allegare la ricevuta): l’amministratore confermerà. Le tue rate le vedi solo tu.
         </Sezione>
         <Sezione icona="wallet-outline" titolo="Conto spese">
           Il saldo, le entrate e le uscite con le fatture, la tua quota in base ai millesimi e il rendiconto scaricabile in Excel
@@ -214,6 +217,10 @@ export default function Guida() {
           Regolamento e polizze; i preventivi delle ditte a confronto (chiunque può aggiungerne); i lavori fatti con fatture e garanzie; le scadenze da ricordare; i numeri dell’idraulico,
           dell’elettricista e delle emergenze (un tocco e parte la chiamata).
         </Sezione>
+        <Sezione icona="domain" titolo="Ditte e fornitori">
+          L’elenco delle ditte che hanno lavorato per il condominio, con contatti, lavori, preventivi, guasti seguiti e quanto
+          sono state pagate. Quando scrivi il nome di una ditta, l’app ti suggerisce quelle già conosciute.
+        </Sezione>
         <Sezione icona="account-circle-outline" titolo="Il mio profilo">
           Tocca il cerchio con le tue iniziali in alto a destra nella Home: puoi cambiare nome, cellulare, contatto di
           emergenza e password, oppure uscire.
@@ -222,7 +229,8 @@ export default function Guida() {
 
       <Capitolo titolo="Domande frequenti" icona="help-circle-outline">
         <Sezione icona="refresh" titolo="Non vedo le novità">
-          Trascina la pagina verso il basso per aggiornarla, oppure chiudi e riapri l’app.
+          Trascina la pagina verso il basso per aggiornarla. Quando esce una nuova versione dell’app compare in basso il
+          messaggio “È disponibile una nuova versione”: tocca Aggiorna. Se non basta, chiudi e riapri l’app.
         </Sezione>
         <Sezione icona="shield-lock-outline" titolo="Chi vede i miei dati?">
           Nome e appartamento li vedono gli altri condòmini. Cellulare, contatto di emergenza e le tue rate solo tu e
@@ -246,13 +254,20 @@ export default function Guida() {
               Eliminare resta a te o a chi ha inserito la cosa.
             </Sezione>
             <Sezione icona="bullhorn-outline" titolo="Avvisi, sondaggi, assemblee">
-              Con il pulsante “+” in basso a destra di ogni sezione. Un avviso “in evidenza” compare in cima alla Home di tutti.
-              I sondaggi possono essere per testa o millesimi, a scelta multipla, o un confronto tra preventivi.
+              Con il pulsante “+” in basso a destra di ogni sezione. Un avviso “in evidenza” compare in cima alla Home di tutti;
+              se aggiungi giorno e ora diventa un appuntamento ben visibile nella Home. I sondaggi possono essere per testa o
+              millesimi, a scelta multipla, con documenti da consultare o un confronto tra preventivi; con “Modifica” li correggi
+              (le opzioni solo finché nessuno ha votato). Le assemblee possono essere ordinarie o straordinarie.
+            </Sezione>
+            <Sezione icona="file-compare" titolo="Preventivi">
+              Crea una richiesta (es. “Rifacimento tetto”) e raccogli i preventivi delle ditte. Con “Metti ai voti” nasce il
+              sondaggio di confronto; quando uno è accettato, “Registra nello storico lavori” compila il lavoro da solo.
             </Sezione>
             <Sezione icona="cash-check" titolo="Rate">
-              “Nuova rata”: totale, scadenza e divisione (millesimi, parti uguali, a mano). Quando un condòmino segnala “Ho
-              pagato” lo vedi nella Home: apri la rata, guarda la ricevuta e premi Conferma o Rifiuta. Inserisci l’IBAN in
-              “Le mie rate”.
+              “Nuova rata”: totale, scadenza, divisione (millesimi, parti uguali, a mano) e causale del bonifico. Quando un
+              condòmino segnala “Ho pagato” lo vedi nella Home: apri la rata, guarda la ricevuta e premi Conferma o Rifiuta.
+              Con “Modifica rata” correggi titolo, scadenza e importi non ancora pagati; in fondo trovi chi ha pagato, chi no e
+              lo storico di tutto. L’IBAN si inserisce in “Le mie rate”.
             </Sezione>
             <Sezione icona="wallet-plus-outline" titolo="Conto spese">
               Aggiungi entrate e uscite con la fattura allegata. Il rendiconto annuale si scarica in Excel o PDF.
