@@ -108,8 +108,11 @@ export type AllegatoAssemblea = {
   tipo_mime: string;
 };
 
+export type TipoAssemblea = 'ordinaria' | 'straordinaria';
+
 export type Assemblea = {
   id: string;
+  tipo?: TipoAssemblea; // colonna di supabase/09-...sql
   titolo: string;
   data_ora: string;
   luogo: string | null;

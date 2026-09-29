@@ -269,6 +269,11 @@ export default function DettaglioAssemblea() {
             <Text variant="bodyLarge">ore {ora(a.data_ora)}</Text>
             <View style={styles.etichette}>
               <Etichetta
+                testo={a.tipo === 'straordinaria' ? 'Straordinaria' : 'Ordinaria'}
+                tinta={a.tipo === 'straordinaria' ? tinte.viola : tinte.grigio}
+                icona={a.tipo === 'straordinaria' ? 'alert-decagram-outline' : 'account-group-outline'}
+              />
+              <Etichetta
                 testo={passata ? 'Conclusa' : traQuanto(a.data_ora)}
                 tinta={passata ? tinte.grigio : tinte.blu}
                 icona={passata ? 'check' : 'clock-outline'}

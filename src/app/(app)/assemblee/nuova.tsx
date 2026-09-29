@@ -3,7 +3,7 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Button, Text, TextInput } from 'react-native-paper';
+import { Button, SegmentedButtons, Text, TextInput } from 'react-native-paper';
 
 import { CampoData, CampoOra } from '@/components/CampoData';
 import { Pagina } from '@/components/Pagina';
@@ -12,9 +12,17 @@ import { Errore, Nota, Riquadro } from '@/components/ui';
 import { caricaFile, TIPI_ASSEMBLEA, type FileScelto } from '@/lib/file';
 import { leggiData, leggiOra } from '@/lib/formato';
 import { supabase } from '@/lib/supabase';
+import type { TipoAssemblea } from '@/lib/tipi';
 
 export default function NuovaAssemblea() {
+  const [tipo, setTipo] = useState<TipoAssemblea>('ordinaria');
   const [titolo, setTitolo] = useState('Assemblea ordinaria');
+
+  // Cambiando tipo si aggiorna il titolo, se è ancora quello proposto
+  function cambiaTipo(nuovo: TipoAssemblea) {
+    if (titolo === `Assemblea ${tipo}` || !titolo.trim()) setTitolo(`Assemblea ${nuovo}`);
+    setTipo(nuovo);
+  }
   const [giorno, setGiorno] = useState('');
   const [orario, setOrario] = useState('');
   const [luogo, setLuogo] = useState('');
@@ -54,6 +62,8 @@ export default function NuovaAssemblea() {
         .from('assemblee')
         .insert({
           titolo: titolo.trim(),
+          // il tipo si manda solo se straordinaria: così funziona anche prima di supabase/09-...sql
+          ...(tipo === 'straordinaria' ? { tipo } : {}),
           data_ora: dataOra,
           luogo: luogo.trim() || null,
           link_online: link.trim() || null,
@@ -82,6 +92,14 @@ export default function NuovaAssemblea() {
   return (
     <Pagina titolo="Nuova assemblea" sottotitolo="La vedranno tutti i condòmini approvati">
       <Riquadro>
+        <SegmentedButtons
+          value={tipo}
+          onValueChange={(v) => cambiaTipo(v as TipoAssemblea)}
+          buttons={[
+            { value: 'ordinaria', label: 'Ordinaria' },
+            { value: 'straordinaria', label: 'Straordinaria' },
+          ]}
+        />
         <TextInput label="Titolo" mode="outlined" value={titolo} onChangeText={setTitolo} />
         <View style={styles.riga}>
           <CampoData style={styles.flex} label="Data" value={giorno} onChangeText={setGiorno} />

@@ -53,6 +53,7 @@ export default function Assemblee() {
             {a.luogo ? ` · ${a.luogo}` : ''}
           </Nota>
           <View style={styles.etichette}>
+            {a.tipo === 'straordinaria' && <Etichetta testo="Straordinaria" tinta={tinte.viola} icona="alert-decagram-outline" />}
             {!passata && <Etichetta testo={traQuanto(a.data_ora)} tinta={tinte.blu} icona="clock-outline" />}
             {!passata && r && <Etichetta testo={r.breve} tinta={tinte[r.tinta]} icona={r.icona} />}
             {!passata && !r && <Etichetta testo="Rispondi" tinta={tinte.arancio} icona="help-circle-outline" />}
