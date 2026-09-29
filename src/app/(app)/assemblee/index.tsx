@@ -1,8 +1,8 @@
 // Elenco delle assemblee: prossime in alto (dalla più vicina), poi l'archivio delle passate.
 import { router } from 'expo-router';
-import { useCallback } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Icon, Text, useTheme } from 'react-native-paper';
+import { useCallback, useState } from 'react';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Chip, Icon, Text, TextInput, useTheme } from 'react-native-paper';
 
 import { DataCalendario } from '@/components/DataCalendario';
 import { Pagina } from '@/components/Pagina';
@@ -20,6 +20,8 @@ export default function Assemblee() {
   const tema = useTheme();
   const tinte = useTinte();
   const admin = profilo?.ruolo === 'amministratore';
+  const [cerca, setCerca] = useState('');
+  const [anno, setAnno] = useState<number | null>(null);
 
   const leggi = useCallback(async () => {
     const [a, p] = await Promise.all([
@@ -35,7 +37,21 @@ export default function Assemblee() {
 
   const adesso = new Date().toISOString();
   const prossime = dati?.assemblee.filter((a) => a.data_ora >= adesso) ?? [];
-  const passate = [...(dati?.assemblee.filter((a) => a.data_ora < adesso) ?? [])].reverse();
+  const tutteLePassate = [...(dati?.assemblee.filter((a) => a.data_ora < adesso) ?? [])].reverse();
+  const anni = [...new Set(tutteLePassate.map((a) => new Date(a.data_ora).getFullYear()))];
+
+  // Ricerca: cerca nel titolo, luogo, ordine del giorno, testo della convocazione e nomi dei documenti
+  const testo = cerca.trim().toLowerCase();
+  const corrisponde = (a: Assemblea) =>
+    !testo ||
+    [a.titolo, a.luogo, a.ordine_del_giorno, a.testo, a.tipo, ...a.assemblee_allegati.map((f) => f.nome_file)]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
+      .includes(testo);
+  const passate = tutteLePassate.filter(
+    (a) => (anno === null || new Date(a.data_ora).getFullYear() === anno) && corrisponde(a),
+  );
 
   function Scheda({ a, passata }: { a: Assemblea; passata: boolean }) {
     const risposta = dati?.mie.get(a.id);
@@ -80,10 +96,40 @@ export default function Assemblee() {
       )}
 
       {prossime.length > 0 && <Titoletto>In programma</Titoletto>}
-      {prossime.map((a) => (
+      {prossime.filter(corrisponde).map((a) => (
         <Scheda key={a.id} a={a} passata={false} />
       ))}
-      {passate.length > 0 && <Titoletto>Archivio</Titoletto>}
+      {tutteLePassate.length > 0 && (
+        <>
+          <Titoletto>Archivio ({tutteLePassate.length})</Titoletto>
+          {tutteLePassate.length > 3 && (
+            <>
+              <TextInput
+                mode="outlined"
+                dense
+                placeholder="Cerca (es. tetto, rendiconto, verbale...)"
+                value={cerca}
+                onChangeText={setCerca}
+                left={<TextInput.Icon icon="magnify" />}
+                right={cerca ? <TextInput.Icon icon="close" onPress={() => setCerca('')} /> : undefined}
+              />
+              {anni.length > 1 && (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.anni}>
+                  <Chip selected={anno === null} showSelectedCheck={false} mode={anno === null ? 'flat' : 'outlined'} onPress={() => setAnno(null)}>
+                    Tutti gli anni
+                  </Chip>
+                  {anni.map((x) => (
+                    <Chip key={x} selected={anno === x} showSelectedCheck={false} mode={anno === x ? 'flat' : 'outlined'} onPress={() => setAnno(x)}>
+                      {String(x)}
+                    </Chip>
+                  ))}
+                </ScrollView>
+              )}
+            </>
+          )}
+          {passate.length === 0 && <Nota>Nessuna assemblea trovata.</Nota>}
+        </>
+      )}
       {passate.map((a) => (
         <Scheda key={a.id} a={a} passata />
       ))}
@@ -95,5 +141,6 @@ const styles = StyleSheet.create({
   caricamento: { marginTop: 32 },
   riga: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   flex: { flex: 1, gap: 2 },
+  anni: { gap: 6 },
   etichette: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 },
 });

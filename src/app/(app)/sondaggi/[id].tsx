@@ -20,9 +20,11 @@ import { useDati } from '@/lib/useDati';
 
 type Dati = {
   sondaggio: Sondaggio;
-  mioVoto: string | null;
+  mieiVoti: string[]; // opzioni scelte da me (più di una nei sondaggi a scelta multipla)
   risultati: RisultatoOpzione[];
   aventiDiritto: { persone: number; millesimi: number };
+  // chi ha votato (persone diverse): con la scelta multipla i voti sono più dei votanti
+  votanti: { persone: number; millesimi: number } | null;
 };
 
 // Barra orizzontale colorata (quota da 0 a 1)
@@ -40,28 +42,36 @@ export default function DettaglioSondaggio() {
   const tema = useTheme();
   const tinte = useTinte();
   const admin = profilo?.ruolo === 'amministratore';
-  const [scelta, setScelta] = useState('');
+  const [scelta, setScelta] = useState<string[]>([]);
   const [cambio, setCambio] = useState(false);
   const [inCorso, setInCorso] = useState(false);
   const [errore, setErrore] = useState('');
 
   const leggi = useCallback(async () => {
-    const [s, v, r, p] = await Promise.all([
+    const [s, v, r, p, vt] = await Promise.all([
       supabase.from('sondaggi').select('*, sondaggi_opzioni(*)').eq('id', id).single<Sondaggio>(),
-      supabase.from('voti').select('opzione_id').eq('sondaggio_id', id).eq('utente_id', profilo?.id ?? '').maybeSingle(),
+      supabase.from('voti').select('opzione_id').eq('sondaggio_id', id).eq('utente_id', profilo?.id ?? ''),
       supabase.rpc('risultati_sondaggio', { p_sondaggio: id }),
       supabase.from('profili').select('millesimi').eq('approvato', true),
+      // funzione di supabase/11-...sql: se non c'è ancora si usano i totali dei voti
+      supabase.rpc('votanti_sondaggio', { p_sondaggio: id }),
     ]);
     const error = s.error ?? v.error ?? r.error ?? p.error;
     if (error || !s.data) return { data: null, error: error ?? { message: 'Sondaggio non trovato' } };
     const dati: Dati = {
       sondaggio: { ...s.data, sondaggi_opzioni: [...s.data.sondaggi_opzioni].sort((a, b) => a.ordine - b.ordine) },
-      mioVoto: (v.data?.opzione_id as string | undefined) ?? null,
+      mieiVoti: (v.data ?? []).map((x) => x.opzione_id as string),
       risultati: (r.data ?? []) as RisultatoOpzione[],
       aventiDiritto: {
         persone: p.data?.length ?? 0,
         millesimi: (p.data ?? []).reduce((t, x) => t + Number(x.millesimi), 0),
       },
+      votanti: vt.error
+        ? null
+        : {
+            persone: Number((vt.data as { persone: number }[] | null)?.[0]?.persone ?? 0),
+            millesimi: Number((vt.data as { millesimi: number }[] | null)?.[0]?.millesimi ?? 0),
+          },
     };
     return { data: dati, error: null };
   }, [id, profilo?.id]);
@@ -80,39 +90,57 @@ export default function DettaglioSondaggio() {
       </Pagina>
     );
 
-  const { sondaggio: s, mioVoto, risultati, aventiDiritto } = dati;
+  const { sondaggio: s, mieiVoti, risultati, aventiDiritto, votanti } = dati;
   const votabile = aperto(s);
   const perMillesimi = s.modalita === 'millesimi';
-  const mostraVoto = votabile && (!mioVoto || cambio);
-  const mostraRisultati = admin || !!mioVoto || !votabile;
+  const multipla = !!s.multipla;
+  const massimoScelte = multipla ? (s.max_scelte ?? null) : 1;
+  const hoVotato = mieiVoti.length > 0;
+  const mostraVoto = votabile && (!hoVotato || cambio);
+  const mostraRisultati = admin || hoVotato || !votabile;
   const conPreventivi = s.sondaggi_opzioni.some((o) => o.importo != null || !!o.preventivo_path);
 
   const totaleTeste = risultati.reduce((t, x) => t + Number(x.voti_testa), 0);
   const totaleMillesimi = risultati.reduce((t, x) => t + Number(x.voti_millesimi), 0);
   const valore = (r: RisultatoOpzione) => (perMillesimi ? Number(r.voti_millesimi) : Number(r.voti_testa));
-  const totale = perMillesimi ? totaleMillesimi : totaleTeste;
+  // Chi ha votato: persone diverse (con la scelta multipla una persona dà più voti)
+  const votantiTeste = votanti?.persone ?? totaleTeste;
+  const votantiMillesimi = votanti?.millesimi ?? totaleMillesimi;
+  // Percentuale di ogni opzione: sui voti totali (scelta singola) o sui votanti (scelta multipla)
+  const totale = multipla ? (perMillesimi ? votantiMillesimi : votantiTeste) : perMillesimi ? totaleMillesimi : totaleTeste;
   const massimo = Math.max(0, ...risultati.map(valore));
   const partecipazione = perMillesimi
     ? aventiDiritto.millesimi > 0
-      ? totaleMillesimi / aventiDiritto.millesimi
+      ? votantiMillesimi / aventiDiritto.millesimi
       : 0
     : aventiDiritto.persone > 0
-      ? totaleTeste / aventiDiritto.persone
+      ? votantiTeste / aventiDiritto.persone
       : 0;
 
+  function tocca(opzione: string) {
+    setErrore('');
+    if (!multipla) {
+      setScelta([opzione]);
+      return;
+    }
+    if (scelta.includes(opzione)) setScelta(scelta.filter((x) => x !== opzione));
+    else if (massimoScelte && scelta.length >= massimoScelte) setErrore(`Puoi scegliere al massimo ${massimoScelte} opzioni.`);
+    else setScelta([...scelta, opzione]);
+  }
+
   async function vota() {
-    if (!scelta) {
-      setErrore('Scegli un’opzione.');
+    if (!scelta.length) {
+      setErrore(multipla ? 'Scegli almeno un’opzione.' : 'Scegli un’opzione.');
       return;
     }
     setErrore('');
     setInCorso(true);
     try {
-      if (mioVoto) {
+      if (hoVotato) {
         const { error } = await supabase.from('voti').delete().eq('sondaggio_id', s.id).eq('utente_id', profilo!.id);
         if (error) throw new Error(error.message);
       }
-      const { error } = await supabase.from('voti').insert({ sondaggio_id: s.id, opzione_id: scelta });
+      const { error } = await supabase.from('voti').insert(scelta.map((o) => ({ sondaggio_id: s.id, opzione_id: o })));
       if (error) throw new Error(error.message);
       setCambio(false);
       await ricarica();
@@ -143,6 +171,7 @@ export default function DettaglioSondaggio() {
             tinta={votabile ? tinte.viola : tinte.grigio}
             icona={votabile ? 'clock-outline' : 'archive-outline'}
           />
+          {multipla && <Etichetta testo="Più scelte" tinta={tinte.verde} icona="checkbox-multiple-marked-outline" />}
           <Etichetta
             testo={perMillesimi ? 'Per millesimi' : 'Per testa'}
             tinta={tinte.blu}
@@ -161,13 +190,18 @@ export default function DettaglioSondaggio() {
       {/* Voto */}
       {mostraVoto && (
         <>
-          <Titoletto>{mioVoto ? 'Cambia il tuo voto' : 'Il tuo voto'}</Titoletto>
+          <Titoletto>{hoVotato ? 'Cambia il tuo voto' : 'Il tuo voto'}</Titoletto>
+          {multipla && (
+            <Nota>
+              Puoi scegliere più opzioni{massimoScelte ? ` (al massimo ${massimoScelte})` : ''}.
+            </Nota>
+          )}
           {s.sondaggi_opzioni.map((o) => {
-            const scelto = scelta === o.id;
+            const scelto = scelta.includes(o.id);
             return (
               <Pressable
                 key={o.id}
-                onPress={() => setScelta(o.id)}
+                onPress={() => tocca(o.id)}
                 style={[
                   styles.opzione,
                   {
@@ -177,7 +211,9 @@ export default function DettaglioSondaggio() {
                 ]}
               >
                 <Icon
-                  source={scelto ? 'radiobox-marked' : 'radiobox-blank'}
+                  source={
+                    multipla ? (scelto ? 'checkbox-marked' : 'checkbox-blank-outline') : scelto ? 'radiobox-marked' : 'radiobox-blank'
+                  }
                   size={22}
                   color={scelto ? tema.colors.primary : tema.colors.onSurfaceVariant}
                 />
@@ -196,7 +232,7 @@ export default function DettaglioSondaggio() {
           <Errore testo={errore} />
           <View style={styles.azioni}>
             {cambio && <Button onPress={() => setCambio(false)}>Annulla</Button>}
-            <Button mode="contained" icon="check" onPress={vota} loading={inCorso} disabled={inCorso || !scelta}>
+            <Button mode="contained" icon="check" onPress={vota} loading={inCorso} disabled={inCorso || !scelta.length}>
               Conferma voto
             </Button>
           </View>
@@ -225,7 +261,7 @@ export default function DettaglioSondaggio() {
       )}
 
       {/* Voto già dato */}
-      {!!mioVoto && !cambio && (
+      {hoVotato && !cambio && (
         <Riquadro style={[styles.riga, { backgroundColor: tinte.verde.sfondo, borderColor: tinte.verde.sfondo }]}>
           <Icon source="check-circle" size={24} color={tinte.verde.testo} />
           <View style={styles.flex}>
@@ -233,7 +269,10 @@ export default function DettaglioSondaggio() {
               Hai votato
             </Text>
             <Text variant="titleMedium" style={{ color: tinte.verde.testo }}>
-              {s.sondaggi_opzioni.find((o) => o.id === mioVoto)?.testo}
+              {s.sondaggi_opzioni
+                .filter((o) => mieiVoti.includes(o.id))
+                .map((o) => o.testo)
+                .join(', ')}
             </Text>
           </View>
           {votabile && (
@@ -241,7 +280,7 @@ export default function DettaglioSondaggio() {
               compact
               textColor={tinte.verde.testo}
               onPress={() => {
-                setScelta(mioVoto);
+                setScelta(mieiVoti);
                 setCambio(true);
               }}
             >
@@ -282,8 +321,8 @@ export default function DettaglioSondaggio() {
                 <Nota>Partecipazione</Nota>
                 <Nota>
                   {perMillesimi
-                    ? `${millesimi(totaleMillesimi)} / ${millesimi(aventiDiritto.millesimi)} millesimi`
-                    : `${totaleTeste} / ${aventiDiritto.persone} condòmini`}
+                    ? `${millesimi(votantiMillesimi)} / ${millesimi(aventiDiritto.millesimi)} millesimi`
+                    : `${votantiTeste} / ${aventiDiritto.persone} condòmini`}
                 </Nota>
               </View>
               <Barra quota={Math.min(1, partecipazione)} colore={tinte.verde.testo} sfondo={tema.colors.surfaceVariant} />

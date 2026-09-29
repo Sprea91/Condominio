@@ -68,6 +68,8 @@ export type Sondaggio = {
   modalita: ModalitaVoto;
   scadenza: string | null;
   chiuso: boolean;
+  multipla?: boolean; // si possono scegliere più opzioni (supabase/11-...sql)
+  max_scelte?: number | null;
   creato_il: string;
   sondaggi_opzioni: OpzioneSondaggio[];
 };

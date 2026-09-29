@@ -24,6 +24,8 @@ export default function NuovoSondaggio() {
   const [descrizione, setDescrizione] = useState('');
   const [modalita, setModalita] = useState<ModalitaVoto>('millesimi');
   const [preventivi, setPreventivi] = useState(false);
+  const [multipla, setMultipla] = useState(false);
+  const [maxScelte, setMaxScelte] = useState('');
   const [opzioni, setOpzioni] = useState<Opzione[]>([vuota('Favorevole'), vuota('Contrario'), vuota('Astenuto')]);
   const [scadenza, setScadenza] = useState('');
   const [inCorso, setInCorso] = useState(false);
@@ -55,6 +57,11 @@ export default function NuovoSondaggio() {
       setErrore('Controlla gli importi dei preventivi (esempio: 12.500,00).');
       return;
     }
+    const massimo = maxScelte.trim() ? Number(maxScelte) : null;
+    if (multipla && massimo !== null && (!Number.isInteger(massimo) || massimo < 1)) {
+      setErrore('Il numero massimo di scelte deve essere un numero intero (es. 2).');
+      return;
+    }
     let scadenzaIso: string | null = null;
     if (scadenza.trim()) {
       const giorno = leggiData(scadenza);
@@ -74,7 +81,14 @@ export default function NuovoSondaggio() {
     try {
       const { data: sondaggio, error } = await supabase
         .from('sondaggi')
-        .insert({ domanda: domanda.trim(), descrizione: descrizione.trim() || null, modalita, scadenza: scadenzaIso })
+        .insert({
+          domanda: domanda.trim(),
+          descrizione: descrizione.trim() || null,
+          modalita,
+          scadenza: scadenzaIso,
+          // campi di supabase/11-...sql: si mandano solo se usati
+          ...(multipla ? { multipla: true, max_scelte: massimo } : {}),
+        })
         .select('id')
         .single();
       if (error) throw new Error(error.message);
@@ -189,6 +203,26 @@ export default function NuovoSondaggio() {
         <Button mode="text" icon="plus" onPress={() => setOpzioni([...opzioni, vuota()])} style={styles.sinistra}>
           {preventivi ? 'Aggiungi preventivo' : 'Aggiungi opzione'}
         </Button>
+      </Riquadro>
+
+      <Riquadro>
+        <View style={styles.riga}>
+          <View style={styles.flex}>
+            <Text variant="titleSmall">Più scelte</Text>
+            <Nota>Ogni condòmino può scegliere più di un’opzione.</Nota>
+          </View>
+          <Switch value={multipla} onValueChange={setMultipla} />
+        </View>
+        {multipla && (
+          <TextInput
+            label="Massimo di scelte (facoltativo, es. 2)"
+            mode="outlined"
+            dense
+            value={maxScelte}
+            onChangeText={setMaxScelte}
+            keyboardType="number-pad"
+          />
+        )}
       </Riquadro>
 
       <Riquadro>
