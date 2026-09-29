@@ -5,15 +5,17 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Avatar, Badge, Icon, Text, useTheme } from 'react-native-paper';
 
 import { CardSaldo } from '@/components/CardSaldo';
+import { DataCalendario } from '@/components/DataCalendario';
 import { Pagina } from '@/components/Pagina';
-import { IconaTonda, Nota, Riquadro, Titoletto } from '@/components/ui';
+import { Etichetta, IconaTonda, Nota, Riquadro, Titoletto } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
-import { dataOra, euro, millesimi } from '@/lib/formato';
+import { dataOra, euro, millesimi, ora, traQuanto } from '@/lib/formato';
 import { ultimaVisita } from '@/lib/letti';
+import { RISPOSTE } from '@/lib/presenze';
 import { aperto } from '@/lib/sondaggi';
 import { supabase } from '@/lib/supabase';
 import { useTinte, type Tinta } from '@/lib/tema';
-import type { Sondaggio } from '@/lib/tipi';
+import type { RispostaPresenza, Sondaggio } from '@/lib/tipi';
 import { useDati } from '@/lib/useDati';
 
 type AvvisoBreve = { id: string; titolo: string; testo: string; creato_il: string; in_evidenza?: boolean };
@@ -26,6 +28,8 @@ type Riepilogo = {
   guastiAperti: number;
   sondaggiDaVotare: number;
   inAttesa: number;
+  prossimaAssemblea: { id: string; titolo: string; data_ora: string; luogo: string | null } | null;
+  miaRisposta: RispostaPresenza | null;
 };
 
 function saluto() {
@@ -81,14 +85,22 @@ export default function Home() {
 
   const leggi = useCallback(async () => {
     const id = profilo?.id ?? '';
-    const [s, a, g, so, v, p] = await Promise.all([
+    const [s, a, g, so, v, p, asm, pr] = await Promise.all([
       supabase.from('saldo').select('saldo').maybeSingle(),
       supabase.from('avvisi').select('*').order('creato_il', { ascending: false }),
       supabase.from('guasti').select('stato').neq('stato', 'chiuso'),
       supabase.from('sondaggi').select('id, chiuso, scadenza'),
       supabase.from('voti').select('sondaggio_id').eq('utente_id', id),
       supabase.from('profili').select('id', { count: 'exact', head: true }).eq('approvato', false),
+      supabase
+        .from('assemblee')
+        .select('id, titolo, data_ora, luogo')
+        .gte('data_ora', new Date().toISOString())
+        .order('data_ora', { ascending: true })
+        .limit(1),
+      supabase.from('presenze').select('assemblea_id, risposta').eq('utente_id', id),
     ]);
+    // Le assemblee arrivano con supabase/05-...sql: se non c'è ancora, la Home funziona lo stesso
     const error = s.error ?? a.error ?? g.error ?? so.error ?? v.error;
     if (error) return { data: null, error };
     const visita = ultimaVisita(id);
@@ -101,7 +113,13 @@ export default function Home() {
       guastiAperti: g.data?.length ?? 0,
       sondaggiDaVotare: ((so.data ?? []) as Sondaggio[]).filter((x) => aperto(x) && !votati.has(x.id)).length,
       inAttesa: p.count ?? 0,
+      prossimaAssemblea: asm.error ? null : (asm.data?.[0] ?? null),
+      miaRisposta: null,
     };
+    if (dati.prossimaAssemblea && !pr.error) {
+      const r = (pr.data ?? []).find((x) => x.assemblea_id === dati.prossimaAssemblea!.id);
+      dati.miaRisposta = (r?.risposta as RispostaPresenza | undefined) ?? null;
+    }
     return { data: dati, error: null };
   }, [profilo?.id]);
   const { dati, aggiorna, aggiornamento } = useDati(leggi);
@@ -151,6 +169,34 @@ export default function Home() {
         </Riquadro>
       ))}
 
+      {/* Prossima assemblea */}
+      {dati?.prossimaAssemblea && (
+        <Riquadro onPress={() => router.push(`/assemblee/${dati.prossimaAssemblea!.id}`)} style={styles.rigaAvviso}>
+          <DataCalendario iso={dati.prossimaAssemblea.data_ora} />
+          <View style={styles.flex}>
+            <Nota>Prossima assemblea · {traQuanto(dati.prossimaAssemblea.data_ora)}</Nota>
+            <Text variant="titleMedium" numberOfLines={2}>
+              {dati.prossimaAssemblea.titolo}
+            </Text>
+            <Nota>
+              ore {ora(dati.prossimaAssemblea.data_ora)}
+              {dati.prossimaAssemblea.luogo ? ` · ${dati.prossimaAssemblea.luogo}` : ''}
+            </Nota>
+            <View style={styles.sotto}>
+              {(() => {
+                const r = RISPOSTE.find((x) => x.valore === dati.miaRisposta);
+                return r ? (
+                  <Etichetta testo={r.breve} tinta={tinte[r.tinta]} icona={r.icona} />
+                ) : (
+                  <Etichetta testo="Conferma la presenza" tinta={tinte.arancio} icona="help-circle-outline" />
+                );
+              })()}
+            </View>
+          </View>
+          <Icon source="chevron-right" size={20} color={tema.colors.onSurfaceVariant} />
+        </Riquadro>
+      )}
+
       {/* Saldo: porta al conto spese */}
       <CardSaldo
         etichetta="Saldo del condominio"
@@ -195,6 +241,13 @@ export default function Home() {
           conteggio={dati?.sondaggiDaVotare}
           link="/sondaggi"
         />
+        <TesseraSezione
+          titolo="Assemblee"
+          dettaglio={dati?.prossimaAssemblea ? traQuanto(dati.prossimaAssemblea.data_ora) : 'Convocazioni'}
+          icona="calendar-account-outline"
+          tinta={tinte.verde}
+          link="/assemblee"
+        />
       </View>
 
       {/* Ultimo avviso (se non è già mostrato in evidenza) */}
@@ -230,7 +283,8 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   rigaAvviso: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   griglia: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  tessera: { flexBasis: '30%', flexGrow: 1, gap: 12, padding: 14 },
+  tessera: { flexBasis: '46%', flexGrow: 1, gap: 14 },
+  sotto: { flexDirection: 'row', marginTop: 6 },
   maiuscolo: { textTransform: 'uppercase', letterSpacing: 0.8 },
   rigaTessera: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
 });

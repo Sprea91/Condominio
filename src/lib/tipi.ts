@@ -77,3 +77,44 @@ export type Movimento = {
   importo: number;
   giustificativo_path: string | null;
 };
+
+// Dati riservati: li vedono solo l'interessato e l'amministratore (supabase/05-...sql)
+export type Contatti = {
+  id: string;
+  cellulare: string | null;
+  emergenza_nome: string | null;
+  emergenza_telefono: string | null;
+  consenso_privacy_il: string | null;
+};
+
+export type CategoriaAllegato = 'convocazione' | 'verbale' | 'altro';
+
+export type AllegatoAssemblea = {
+  id: string;
+  categoria: CategoriaAllegato;
+  percorso: string;
+  nome_file: string;
+  tipo_mime: string;
+};
+
+export type Assemblea = {
+  id: string;
+  titolo: string;
+  data_ora: string;
+  luogo: string | null;
+  link_online: string | null;
+  ordine_del_giorno: string | null;
+  testo: string | null;
+  creato_il: string;
+  assemblee_allegati: AllegatoAssemblea[];
+};
+
+export type RispostaPresenza = 'presente' | 'assente' | 'delega';
+
+export type Presenza = {
+  assemblea_id: string;
+  utente_id: string;
+  risposta: RispostaPresenza;
+  delegato: string | null;
+  profilo?: { nome: string | null; appartamento: string | null } | null;
+};

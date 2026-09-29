@@ -11,7 +11,7 @@ import { useAuth } from '@/lib/auth';
 import { millesimi as millesimiFmt } from '@/lib/formato';
 import { supabase } from '@/lib/supabase';
 import { useTinte } from '@/lib/tema';
-import type { Profilo } from '@/lib/tipi';
+import type { Contatti, Profilo } from '@/lib/tipi';
 
 // Ordina "1, 2, 10" come numeri e non come testo ("1, 10, 2")
 function perAppartamento(a: Profilo, b: Profilo) {
@@ -22,6 +22,7 @@ export default function Condomini() {
   const { profilo: io, ricaricaProfilo } = useAuth();
   const tinte = useTinte();
   const [profili, setProfili] = useState<Profilo[] | null>(null);
+  const [contatti, setContatti] = useState<Map<string, Contatti>>(new Map());
   const [errore, setErrore] = useState('');
 
   const carica = useCallback(async () => {
@@ -31,6 +32,9 @@ export default function Condomini() {
       return;
     }
     setProfili(((data ?? []) as Profilo[]).sort(perAppartamento));
+    // Contatti riservati (tabella di supabase/05-...sql; se manca, semplicemente non si mostrano)
+    const c = await supabase.from('profili_contatti').select('*');
+    if (!c.error) setContatti(new Map(((c.data ?? []) as Contatti[]).map((x) => [x.id, x])));
   }, []);
 
   useEffect(() => {
@@ -59,7 +63,7 @@ export default function Condomini() {
           <Titoletto>In attesa di approvazione</Titoletto>
           {inAttesa.length === 0 && <Nota>Nessuna richiesta in sospeso.</Nota>}
           {inAttesa.map((p) => (
-            <SchedaCondomino key={p.id} profilo={p} sonoIo={p.id === io?.id} onModificato={dopoModifica} />
+            <SchedaCondomino key={p.id} profilo={p} sonoIo={p.id === io?.id} contatti={contatti.get(p.id)} onModificato={dopoModifica} />
           ))}
 
           <Titoletto>Condòmini attivi</Titoletto>
@@ -81,7 +85,7 @@ export default function Condomini() {
             </Text>
           </Riquadro>
           {attivi.map((p) => (
-            <SchedaCondomino key={p.id} profilo={p} sonoIo={p.id === io?.id} onModificato={dopoModifica} />
+            <SchedaCondomino key={p.id} profilo={p} sonoIo={p.id === io?.id} contatti={contatti.get(p.id)} onModificato={dopoModifica} />
           ))}
         </>
       )}

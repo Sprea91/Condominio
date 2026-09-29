@@ -3,8 +3,8 @@
 // l'account resta "in attesa" finché l'amministratore non lo approva.
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet } from 'react-native';
-import { Button, Text, TextInput, useTheme } from 'react-native-paper';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Button, Checkbox, Text, TextInput, useTheme } from 'react-native-paper';
 
 import { Benvenuto, CampoPassword } from '@/components/Benvenuto';
 import { Errore } from '@/components/ui';
@@ -17,14 +17,26 @@ export default function Registrati() {
   const [appartamento, setAppartamento] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [cellulare, setCellulare] = useState('');
+  const [emergenzaNome, setEmergenzaNome] = useState('');
+  const [emergenzaTelefono, setEmergenzaTelefono] = useState('');
+  const [consenso, setConsenso] = useState(false);
   const [inCorso, setInCorso] = useState(false);
   const [errore, setErrore] = useState('');
   const [inviata, setInviata] = useState(false);
 
   async function registrati() {
     setErrore('');
-    if (!nome.trim() || !appartamento.trim() || !email.trim() || !password) {
-      setErrore('Compila tutti i campi.');
+    if (!nome.trim() || !appartamento.trim() || !email.trim() || !cellulare.trim() || !password) {
+      setErrore('Compila tutti i campi obbligatori.');
+      return;
+    }
+    if (cellulare.replace(/[^\d]/g, '').length < 8) {
+      setErrore('Controlla il numero di cellulare.');
+      return;
+    }
+    if (!consenso) {
+      setErrore('Per registrarti devi accettare il trattamento dei dati.');
       return;
     }
     if (password.length < 6) {
@@ -35,7 +47,18 @@ export default function Registrati() {
     const { error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
-      options: { data: { nome: nome.trim(), appartamento: appartamento.trim() } },
+      // Questi dati li salva il database in automatico (funzione crea_profilo in supabase/05-...sql);
+      // cellulare ed emergenza finiscono nella tabella riservata che vede solo l'amministratore
+      options: {
+        data: {
+          nome: nome.trim(),
+          appartamento: appartamento.trim(),
+          cellulare: cellulare.trim(),
+          emergenza_nome: emergenzaNome.trim(),
+          emergenza_telefono: emergenzaTelefono.trim(),
+          consenso_privacy: 'true',
+        },
+      },
     });
     setInCorso(false);
     if (error) {
@@ -89,6 +112,15 @@ export default function Registrati() {
         keyboardType="email-address"
         left={<TextInput.Icon icon="email-outline" />}
       />
+      <TextInput
+        label="Cellulare"
+        mode="outlined"
+        value={cellulare}
+        onChangeText={setCellulare}
+        keyboardType="phone-pad"
+        autoComplete="tel"
+        left={<TextInput.Icon icon="cellphone" />}
+      />
       <CampoPassword
         label="Password (almeno 6 caratteri)"
         value={password}
@@ -96,6 +128,36 @@ export default function Registrati() {
         onSubmitEditing={registrati}
         nuova
       />
+
+      <View style={styles.sezione}>
+        <Text variant="titleSmall">Contatto di emergenza (facoltativo)</Text>
+        <Text variant="bodySmall" style={{ color: tema.colors.onSurfaceVariant }}>
+          Una persona da avvisare se succede qualcosa in tua assenza (es. perdita d’acqua).
+        </Text>
+      </View>
+      <TextInput
+        label="Nome"
+        mode="outlined"
+        value={emergenzaNome}
+        onChangeText={setEmergenzaNome}
+        left={<TextInput.Icon icon="account-heart-outline" />}
+      />
+      <TextInput
+        label="Telefono"
+        mode="outlined"
+        value={emergenzaTelefono}
+        onChangeText={setEmergenzaTelefono}
+        keyboardType="phone-pad"
+        left={<TextInput.Icon icon="phone-outline" />}
+      />
+
+      <Pressable style={styles.consenso} onPress={() => setConsenso(!consenso)}>
+        <Checkbox.Android status={consenso ? 'checked' : 'unchecked'} onPress={() => setConsenso(!consenso)} />
+        <Text variant="bodySmall" style={styles.flex}>
+          Acconsento al trattamento dei miei dati per la gestione del condominio. Nome e appartamento sono
+          visibili agli altri condòmini; cellulare e contatto di emergenza solo all’amministratore.
+        </Text>
+      </Pressable>
       <Errore testo={errore} />
       <Button mode="contained" onPress={registrati} loading={inCorso} disabled={inCorso} contentStyle={styles.alto}>
         Registrati
@@ -110,4 +172,7 @@ export default function Registrati() {
 const styles = StyleSheet.create({
   grassetto: { fontWeight: 'bold' },
   alto: { height: 48 },
+  sezione: { gap: 2, marginTop: 8 },
+  consenso: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  flex: { flex: 1 },
 });

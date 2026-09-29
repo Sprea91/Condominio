@@ -37,7 +37,7 @@ export function SceltaFile({ file, onCambia, tipi, etichetta, multipli = true }:
         {file.map((f, i) => (
           <Chip
             key={`${f.uri}-${i}`}
-            icon={f.tipo === 'application/pdf' ? 'file-pdf-box' : 'image'}
+            icon={f.tipo === 'application/pdf' ? 'file-pdf-box' : f.tipo.startsWith('image/') ? 'image' : 'file-document-outline'}
             onClose={() => onCambia(file.filter((_, j) => j !== i))}
           >
             {f.nome}

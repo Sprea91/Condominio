@@ -1,5 +1,5 @@
 // Il mio profilo: dati, modifica del nome, cambio password, uscita.
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Avatar, Button, Divider, Text, TextInput, useTheme } from 'react-native-paper';
 
@@ -10,6 +10,83 @@ import { useAuth } from '@/lib/auth';
 import { messaggioErrore } from '@/lib/errori';
 import { millesimi } from '@/lib/formato';
 import { supabase } from '@/lib/supabase';
+import type { Contatti as TipoContatti } from '@/lib/tipi';
+import { useDati } from '@/lib/useDati';
+
+// Cellulare e contatto di emergenza: tabella riservata (li vede solo l'amministratore)
+function Contatti() {
+  const { profilo } = useAuth();
+  const leggi = useCallback(
+    () => supabase.from('profili_contatti').select('*').eq('id', profilo?.id ?? '').maybeSingle<TipoContatti>(),
+    [profilo?.id],
+  );
+  const { dati, errore } = useDati(leggi);
+  // Se la tabella non esiste ancora (supabase/05-...sql non eseguito) la sezione non si mostra
+  if (errore) return null;
+  return <ModuloContatti key={dati?.id ?? 'nuovo'} iniziali={dati} />;
+}
+
+function ModuloContatti({ iniziali }: { iniziali: TipoContatti | null }) {
+  const { profilo } = useAuth();
+  const [cellulare, setCellulare] = useState(iniziali?.cellulare ?? '');
+  const [emergenzaNome, setEmergenzaNome] = useState(iniziali?.emergenza_nome ?? '');
+  const [emergenzaTelefono, setEmergenzaTelefono] = useState(iniziali?.emergenza_telefono ?? '');
+  const [inCorso, setInCorso] = useState(false);
+  const [messaggio, setMessaggio] = useState('');
+  const [errore, setErrore] = useState('');
+
+  async function salva() {
+    setErrore('');
+    setMessaggio('');
+    setInCorso(true);
+    const { error } = await supabase.from('profili_contatti').upsert({
+      id: profilo!.id,
+      cellulare: cellulare.trim() || null,
+      emergenza_nome: emergenzaNome.trim() || null,
+      emergenza_telefono: emergenzaTelefono.trim() || null,
+    });
+    setInCorso(false);
+    if (error) setErrore(`Errore: ${error.message}`);
+    else setMessaggio('Contatti salvati.');
+  }
+
+  return (
+    <>
+      <Titoletto>Contatti riservati</Titoletto>
+      <Riquadro>
+        <Nota>Li vede solo l’amministratore.</Nota>
+        <TextInput
+          label="Cellulare"
+          mode="outlined"
+          value={cellulare}
+          onChangeText={setCellulare}
+          keyboardType="phone-pad"
+          left={<TextInput.Icon icon="cellphone" />}
+        />
+        <TextInput
+          label="Contatto di emergenza: nome"
+          mode="outlined"
+          value={emergenzaNome}
+          onChangeText={setEmergenzaNome}
+          left={<TextInput.Icon icon="account-heart-outline" />}
+        />
+        <TextInput
+          label="Contatto di emergenza: telefono"
+          mode="outlined"
+          value={emergenzaTelefono}
+          onChangeText={setEmergenzaTelefono}
+          keyboardType="phone-pad"
+          left={<TextInput.Icon icon="phone-outline" />}
+        />
+        <Errore testo={errore} />
+        {!!messaggio && <Nota>{messaggio}</Nota>}
+        <Button mode="contained-tonal" onPress={salva} loading={inCorso} disabled={inCorso}>
+          Salva contatti
+        </Button>
+      </Riquadro>
+    </>
+  );
+}
 
 function Riga({ etichetta, valore }: { etichetta: string; valore: string }) {
   return (
@@ -112,6 +189,8 @@ export default function Profilo() {
           Salva nome
         </Button>
       </Riquadro>
+
+      <Contatti />
 
       <Titoletto>Cambia password</Titoletto>
       <Riquadro>

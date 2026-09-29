@@ -3,7 +3,12 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 
-type Lettura<T> = () => PromiseLike<{ data: T | null; error: { message: string } | null }>;
+type Lettura<T> = () => PromiseLike<{ data: T | null; error: { message: string; code?: string } | null }>;
+
+// Tabella o funzione non ancora creata in Supabase (manca un file supabase/*.sql)
+function nonAncoraAttiva(e: { message: string; code?: string }) {
+  return e.code === 'PGRST205' || e.code === 'PGRST202' || e.code === '42P01' || /schema cache/i.test(e.message);
+}
 
 export function useDati<T>(leggi: Lettura<T>) {
   const [dati, setDati] = useState<T | null>(null);
@@ -12,7 +17,12 @@ export function useDati<T>(leggi: Lettura<T>) {
 
   const ricarica = useCallback(async () => {
     const { data, error } = await leggi();
-    if (error) setErrore(`Errore nel caricamento: ${error.message}`);
+    if (error)
+      setErrore(
+        nonAncoraAttiva(error)
+          ? 'Questa sezione non è ancora attiva: l’amministratore deve eseguire in Supabase l’ultimo file della cartella supabase/.'
+          : `Errore nel caricamento: ${error.message}`,
+      );
     else {
       setErrore('');
       setDati(data);

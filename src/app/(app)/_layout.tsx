@@ -21,12 +21,15 @@ export default function LayoutApp() {
       <Stack.Screen name="sondaggi/index" />
       <Stack.Screen name="sondaggi/[id]" />
       <Stack.Screen name="spese/index" />
+      <Stack.Screen name="assemblee/index" />
+      <Stack.Screen name="assemblee/[id]" />
 
       <Stack.Protected guard={admin}>
         <Stack.Screen name="condomini" />
         <Stack.Screen name="avvisi/nuovo" />
         <Stack.Screen name="sondaggi/nuovo" />
         <Stack.Screen name="spese/nuovo" />
+        <Stack.Screen name="assemblee/nuova" />
       </Stack.Protected>
     </Stack>
   );

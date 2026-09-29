@@ -48,3 +48,41 @@ export function autore(a: { nome: string | null; appartamento: string | null } |
   if (!a) return 'utente eliminato';
   return a.appartamento ? `${a.nome ?? '—'} (app. ${a.appartamento})` : (a.nome ?? '—');
 }
+
+// "lunedì 5 ottobre 2026"
+export function dataLunga(iso: string) {
+  return new Date(iso).toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+// "18:30"
+export function ora(iso: string) {
+  return new Date(iso).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+}
+
+// Per il riquadro a forma di calendario: { giorno: "5", mese: "OTT" }
+export function giornoMese(iso: string) {
+  const d = new Date(iso);
+  return {
+    giorno: String(d.getDate()),
+    mese: d.toLocaleDateString('it-IT', { month: 'short' }).replace('.', '').toUpperCase(),
+  };
+}
+
+// "18:30" o "18.30" -> "18:30" (null se non valida)
+export function leggiOra(testo: string): string | null {
+  const m = testo.trim().match(/^(\d{1,2})[:.](\d{2})$/);
+  if (!m) return null;
+  const [, h, min] = m;
+  if (Number(h) > 23 || Number(min) > 59) return null;
+  return `${h.padStart(2, '0')}:${min}`;
+}
+
+// Tra quanto tempo: "oggi", "domani", "tra 5 giorni"
+export function traQuanto(iso: string) {
+  const inizioGiorno = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const giorni = Math.round((inizioGiorno(new Date(iso)) - inizioGiorno(new Date())) / 86_400_000);
+  if (giorni === 0) return 'oggi';
+  if (giorni === 1) return 'domani';
+  if (giorni > 1) return `tra ${giorni} giorni`;
+  return giorni === -1 ? 'ieri' : `${-giorni} giorni fa`;
+}

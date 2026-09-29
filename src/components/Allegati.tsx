@@ -13,6 +13,14 @@ function eImmagine(f: FileSalvato) {
   return /\.(jpe?g|png|webp)$/i.test(f.percorso);
 }
 
+function iconaFile(f: FileSalvato) {
+  const nome = (f.nome ?? f.percorso).toLowerCase();
+  if (f.tipo === 'application/pdf' || nome.endsWith('.pdf')) return 'file-pdf-box';
+  if (/\.(eml|msg)$/.test(nome)) return 'email-outline';
+  if (/\.docx?$/.test(nome)) return 'file-word-outline';
+  return 'file-document-outline';
+}
+
 function Anteprima({ bucket, percorso }: { bucket: Bucket; percorso: string }) {
   const [link, setLink] = useState<string | null>(null);
 
@@ -50,7 +58,7 @@ export function Allegati({ bucket, file }: { bucket: Bucket; file: FileSalvato[]
       {altri.length > 0 && (
         <View style={styles.riga}>
           {altri.map((f) => (
-            <Chip key={f.percorso} icon="file-pdf-box" onPress={() => apriFile(bucket, f.percorso)}>
+            <Chip key={f.percorso} icon={iconaFile(f)} onPress={() => apriFile(bucket, f.percorso)}>
               {f.nome ?? f.percorso.split('/').pop()}
             </Chip>
           ))}

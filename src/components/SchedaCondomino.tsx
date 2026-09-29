@@ -2,23 +2,39 @@
 // - In attesa: si assegnano appartamento e millesimi, poi Approva o Rifiuta.
 // - Attivo: si correggono appartamento, millesimi e ruolo.
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { Avatar, Button, SegmentedButtons, Text, TextInput, useTheme } from 'react-native-paper';
+import { Linking, Pressable, StyleSheet, View } from 'react-native';
+import { Avatar, Button, Icon, SegmentedButtons, Text, TextInput, useTheme } from 'react-native-paper';
 
 import { leggiNumero } from '@/lib/formato';
 import { supabase } from '@/lib/supabase';
 import { useTinte } from '@/lib/tema';
-import type { Profilo, Ruolo } from '@/lib/tipi';
+import type { Contatti, Profilo, Ruolo } from '@/lib/tipi';
 
 import { Errore, Etichetta, Nota, Riquadro } from './ui';
 
 type Props = {
   profilo: Profilo;
+  contatti?: Contatti;
   sonoIo: boolean;
   onModificato: () => void;
 };
 
-export function SchedaCondomino({ profilo, sonoIo, onModificato }: Props) {
+function Telefono({ icona, etichetta, numero }: { icona: string; etichetta: string; numero: string }) {
+  const tema = useTheme();
+  return (
+    <Pressable style={styles.telefono} onPress={() => Linking.openURL(`tel:${numero.replace(/\s/g, '')}`)}>
+      <Icon source={icona} size={18} color={tema.colors.primary} />
+      <Text variant="bodyMedium" style={styles.flex}>
+        {etichetta}
+      </Text>
+      <Text variant="labelLarge" style={{ color: tema.colors.primary }}>
+        {numero}
+      </Text>
+    </Pressable>
+  );
+}
+
+export function SchedaCondomino({ profilo, contatti, sonoIo, onModificato }: Props) {
   const tema = useTheme();
   const tinte = useTinte();
   const inAttesa = !profilo.approvato;
@@ -89,6 +105,14 @@ export function SchedaCondomino({ profilo, sonoIo, onModificato }: Props) {
         </View>
         {!inAttesa && profilo.ruolo === 'amministratore' && <Etichetta testo="Admin" tinta={tinte.viola} />}
       </View>
+      {!!contatti?.cellulare && <Telefono icona="cellphone" etichetta="Cellulare" numero={contatti.cellulare} />}
+      {!!contatti?.emergenza_telefono && (
+        <Telefono
+          icona="account-heart-outline"
+          etichetta={`Emergenza${contatti.emergenza_nome ? `: ${contatti.emergenza_nome}` : ''}`}
+          numero={contatti.emergenza_telefono}
+        />
+      )}
       {inAttesa && (
         <Nota>Appartamento indicato alla registrazione: {profilo.appartamento_richiesto ?? '—'}</Nota>
       )}
@@ -155,5 +179,6 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   riga: { flexDirection: 'row', gap: 8 },
   campo: { flex: 1 },
+  telefono: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 2 },
   azioni: { flexDirection: 'row', justifyContent: 'flex-end', flexWrap: 'wrap', gap: 8 },
 });
