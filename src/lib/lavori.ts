@@ -1,5 +1,16 @@
 // Regole comuni dello storico lavori.
-import type { CategoriaAllegatoLavoro, Lavoro } from './tipi';
+import type { NomeTinta } from './guasti';
+import type { CategoriaAllegatoLavoro, Lavoro, StatoLavoro } from './tipi';
+
+export const STATI_LAVORO: { valore: StatoLavoro; etichetta: string; icona: string; tinta: NomeTinta }[] = [
+  { valore: 'programmato', etichetta: 'In programma', icona: 'calendar-clock', tinta: 'blu' },
+  { valore: 'in_corso', etichetta: 'In corso', icona: 'progress-wrench', tinta: 'arancio' },
+  { valore: 'finito', etichetta: 'Finito', icona: 'check-circle-outline', tinta: 'verde' },
+];
+
+export function statoLavoro(valore: StatoLavoro | undefined) {
+  return STATI_LAVORO.find((s) => s.valore === (valore ?? 'finito')) ?? STATI_LAVORO[2]!;
+}
 
 export const CATEGORIE_ALLEGATO: { valore: CategoriaAllegatoLavoro; etichetta: string }[] = [
   { valore: 'fattura', etichetta: 'Fattura' },

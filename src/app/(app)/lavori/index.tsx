@@ -7,19 +7,18 @@ import { ActivityIndicator, Icon, Text, useTheme } from 'react-native-paper';
 
 import { Pagina } from '@/components/Pagina';
 import { BottoneNuovo, Errore, Etichetta, IconaTonda, Nota, Riquadro, Titoletto, Vuoto } from '@/components/ui';
-import { useAuth } from '@/lib/auth';
 import { data, euro } from '@/lib/formato';
-import { statoGaranzia } from '@/lib/lavori';
+import { statoGaranzia, statoLavoro } from '@/lib/lavori';
+import { usePermessi } from '@/lib/permessi';
 import { supabase } from '@/lib/supabase';
 import { useTinte } from '@/lib/tema';
 import type { Lavoro } from '@/lib/tipi';
 import { useDati } from '@/lib/useDati';
 
 export default function Lavori() {
-  const { profilo } = useAuth();
   const tema = useTheme();
   const tinte = useTinte();
-  const admin = profilo?.ruolo === 'amministratore';
+  const { puo } = usePermessi();
 
   const leggi = useCallback(
     () =>
@@ -41,7 +40,7 @@ export default function Lavori() {
       sottotitolo={dati?.length ? `${dati.length} lavori · ${inGaranzia} ancora in garanzia` : 'Interventi, fatture e garanzie'}
       onAggiorna={aggiorna}
       aggiornamento={aggiornamento}
-      fisso={admin && <BottoneNuovo etichetta="Nuovo lavoro" onPress={() => router.push('/lavori/nuovo')} />}
+      fisso={puo('lavori') && <BottoneNuovo etichetta="Nuovo lavoro" onPress={() => router.push('/lavori/nuovo')} />}
     >
       <Errore testo={errore} />
       {dati === null && !errore && <ActivityIndicator style={styles.caricamento} />}
@@ -56,10 +55,11 @@ export default function Lavori() {
             .filter((l) => l.data_lavoro.startsWith(anno))
             .map((l) => {
               const g = statoGaranzia(l);
+              const st = statoLavoro(l.stato);
               const fatture = l.lavori_allegati.filter((f) => f.categoria === 'fattura').length;
               return (
                 <Riquadro key={l.id} onPress={() => router.push(`/lavori/${l.id}`)} style={styles.riga}>
-                  <IconaTonda icona="hammer-wrench" tinta={tinte.arancio} dimensione={40} />
+                  <IconaTonda icona={st.icona} tinta={tinte[st.tinta]} dimensione={40} />
                   <View style={styles.flex}>
                     <Text variant="titleMedium" numberOfLines={2}>
                       {l.titolo}
@@ -70,6 +70,7 @@ export default function Lavori() {
                       {l.importo != null ? ` · ${euro(l.importo)}` : ''}
                     </Nota>
                     <View style={styles.etichette}>
+                      {st.valore !== 'finito' && <Etichetta testo={st.etichetta} tinta={tinte[st.tinta]} icona={st.icona} />}
                       {g && (
                         <Etichetta
                           testo={g.valida ? `Garanzia fino al ${data(l.garanzia_fino!)}` : 'Garanzia scaduta'}

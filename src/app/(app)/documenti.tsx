@@ -11,6 +11,7 @@ import { BottoneNuovo, Errore, IconaTonda, Nota, Riquadro, Vuoto } from '@/compo
 import { useAuth } from '@/lib/auth';
 import { apriFile, caricaFile, eliminaFile, TIPI_DOCUMENTO, type FileScelto } from '@/lib/file';
 import { data } from '@/lib/formato';
+import { usePermessi } from '@/lib/permessi';
 import { supabase } from '@/lib/supabase';
 import { useTinte, type Tinta } from '@/lib/tema';
 import type { Documento } from '@/lib/tipi';
@@ -110,6 +111,7 @@ export default function Documenti() {
   const tema = useTheme();
   const tinte = useTinte();
   const admin = profilo?.ruolo === 'amministratore';
+  const { puo } = usePermessi();
   const [cartella, setCartella] = useState<string | null>(null);
   const [nuovo, setNuovo] = useState(false);
   const [cerca, setCerca] = useState('');
@@ -139,7 +141,7 @@ export default function Documenti() {
       sottotitolo="Regolamento, polizze, contratti e altro"
       onAggiorna={aggiorna}
       aggiornamento={aggiornamento}
-      fisso={admin && !nuovo && <BottoneNuovo etichetta="Carica documento" onPress={() => setNuovo(true)} />}
+      fisso={puo('documenti') && !nuovo && <BottoneNuovo etichetta="Carica documento" onPress={() => setNuovo(true)} />}
     >
       {nuovo && (
         <NuovoDocumento
@@ -198,7 +200,7 @@ export default function Documenti() {
               {d.cartella} · {data(d.creato_il)}
             </Nota>
           </View>
-          {admin ? (
+          {admin || d.autore_id === profilo?.id ? (
             <BottoneConferma etichetta="" conferma="Elimina" onConferma={() => elimina(d)} />
           ) : (
             <Icon source="open-in-new" size={18} color={tema.colors.onSurfaceVariant} />

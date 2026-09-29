@@ -13,10 +13,11 @@ import { Errore, Etichetta, Nota, Riquadro, Titoletto } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { caricaFile, eliminaFile, TIPI_DOCUMENTO, type FileScelto } from '@/lib/file';
 import { data, euro } from '@/lib/formato';
-import { CATEGORIE_ALLEGATO, statoGaranzia } from '@/lib/lavori';
+import { CATEGORIE_ALLEGATO, STATI_LAVORO, statoGaranzia, statoLavoro } from '@/lib/lavori';
+import { usePermessi } from '@/lib/permessi';
 import { supabase } from '@/lib/supabase';
 import { useTinte } from '@/lib/tema';
-import type { CategoriaAllegatoLavoro, Lavoro } from '@/lib/tipi';
+import type { CategoriaAllegatoLavoro, Lavoro, StatoLavoro } from '@/lib/tipi';
 import { useDati } from '@/lib/useDati';
 
 function Dato({ icona, etichetta, valore }: { icona: string; etichetta: string; valore: string }) {
@@ -82,6 +83,8 @@ export default function DettaglioLavoro() {
   const { profilo } = useAuth();
   const tinte = useTinte();
   const admin = profilo?.ruolo === 'amministratore';
+  const { puo } = usePermessi();
+  const [erroreStato, setErroreStato] = useState('');
 
   const leggi = useCallback(async () => {
     const { data: l, error } = await supabase.from('lavori').select('*, lavori_allegati(*)').eq('id', id).maybeSingle<Lavoro>();
@@ -104,6 +107,15 @@ export default function DettaglioLavoro() {
     );
 
   const g = statoGaranzia(l);
+  const st = statoLavoro(l.stato);
+  const mio = l.autore_id === profilo?.id;
+
+  async function cambiaStato(nuovo: StatoLavoro) {
+    setErroreStato('');
+    const { error } = await supabase.from('lavori').update({ stato: nuovo }).eq('id', l!.id);
+    if (error) setErroreStato(`Errore: ${error.message}`);
+    else await ricarica();
+  }
 
   async function eliminaAllegato(percorso: string, allegatoId: string) {
     await eliminaFile('documenti', [percorso]);
@@ -120,6 +132,18 @@ export default function DettaglioLavoro() {
   return (
     <Pagina titolo={l.titolo}>
       <Riquadro>
+        {puo('lavori') ? (
+          <SegmentedButtons
+            value={st.valore}
+            onValueChange={(v) => cambiaStato(v as StatoLavoro)}
+            buttons={STATI_LAVORO.map((s) => ({ value: s.valore, label: s.etichetta, icon: s.icona }))}
+          />
+        ) : (
+          <View style={styles.etichette}>
+            <Etichetta testo={st.etichetta} tinta={tinte[st.tinta]} icona={st.icona} />
+          </View>
+        )}
+        <Errore testo={erroreStato} />
         <Dato icona="calendar" etichetta="Data" valore={data(l.data_lavoro)} />
         {!!l.ditta && <Dato icona="domain" etichetta="Ditta" valore={l.ditta} />}
         {l.importo != null && <Dato icona="currency-eur" etichetta="Costo" valore={euro(l.importo)} />}
@@ -151,8 +175,10 @@ export default function DettaglioLavoro() {
           <Riquadro key={c.valore}>
             <Text variant="titleSmall">{c.etichetta}</Text>
             <Allegati bucket="documenti" file={file.map((f) => ({ percorso: f.percorso, nome: f.nome_file, tipo: f.tipo_mime }))} />
-            {admin &&
-              file.map((f) => (
+            {(admin || puo('lavori')) &&
+              file
+                .filter((f) => admin || f.autore_id === profilo?.id)
+                .map((f) => (
                 <View key={f.id} style={styles.dato}>
                   <Nota style={styles.flex}>{f.nome_file}</Nota>
                   <BottoneConferma etichetta="" conferma="Elimina" onConferma={() => eliminaAllegato(f.percorso, f.id)} />
@@ -162,13 +188,11 @@ export default function DettaglioLavoro() {
         );
       })}
 
-      {admin && (
-        <>
-          <AggiungiDocumenti lavoro={l} onCaricati={ricarica} />
-          <Riquadro style={styles.azioni}>
-            <BottoneConferma etichetta="Elimina lavoro" conferma="Elimina definitivamente" onConferma={elimina} />
-          </Riquadro>
-        </>
+      {puo('lavori') && <AggiungiDocumenti lavoro={l} onCaricati={ricarica} />}
+      {(admin || mio) && (
+        <Riquadro style={styles.azioni}>
+          <BottoneConferma etichetta="Elimina lavoro" conferma="Elimina definitivamente" onConferma={elimina} />
+        </Riquadro>
       )}
     </Pagina>
   );

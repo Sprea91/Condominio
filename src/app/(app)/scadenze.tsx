@@ -14,6 +14,7 @@ import { BottoneNuovo, Errore, Etichetta, Nota, Riquadro, Titoletto, Vuoto } fro
 import { useAuth } from '@/lib/auth';
 import { data, leggiData, traQuanto } from '@/lib/formato';
 import { oggiIso } from '@/lib/rate';
+import { usePermessi } from '@/lib/permessi';
 import { supabase } from '@/lib/supabase';
 import { useTinte } from '@/lib/tema';
 import type { Ripetizione, Scadenza } from '@/lib/tipi';
@@ -43,7 +44,16 @@ function aggiungiGiorni(iso: string, giorni: number) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-type Voce = { id: string; titolo: string; data: string; categoria: string; note: string | null; ripetizione?: Ripetizione; garanzia?: string };
+type Voce = {
+  id: string;
+  titolo: string;
+  data: string;
+  categoria: string;
+  note: string | null;
+  ripetizione?: Ripetizione;
+  garanzia?: string;
+  autore_id?: string | null;
+};
 
 function NuovaScadenza({ onSalvata, onAnnulla }: { onSalvata: () => void; onAnnulla: () => void }) {
   const [titolo, setTitolo] = useState('');
@@ -117,6 +127,7 @@ export default function Scadenze() {
   const { profilo } = useAuth();
   const tinte = useTinte();
   const admin = profilo?.ruolo === 'amministratore';
+  const { puo } = usePermessi();
   const [nuova, setNuova] = useState(false);
 
   const leggi = useCallback(async () => {
@@ -189,9 +200,11 @@ export default function Scadenze() {
             {!!v.note && <Nota>{v.note}</Nota>}
           </View>
         </View>
-        {admin && !v.garanzia && (
+        {puo('scadenze') && !v.garanzia && (
           <View style={styles.azioni}>
-            <BottoneConferma etichetta="" conferma="Elimina" onConferma={() => elimina(v)} />
+            {(admin || v.autore_id === profilo?.id) && (
+              <BottoneConferma etichetta="" conferma="Elimina" onConferma={() => elimina(v)} />
+            )}
             <Button mode="contained-tonal" icon="check" compact onPress={() => fatto(v)}>
               {r && r.mesi > 0 ? 'Fatto, sposta alla prossima' : 'Fatto'}
             </Button>
@@ -207,7 +220,7 @@ export default function Scadenze() {
       sottotitolo="Revisioni, assicurazioni, manutenzioni"
       onAggiorna={aggiorna}
       aggiornamento={aggiornamento}
-      fisso={admin && !nuova && <BottoneNuovo etichetta="Nuova scadenza" onPress={() => setNuova(true)} />}
+      fisso={puo('scadenze') && !nuova && <BottoneNuovo etichetta="Nuova scadenza" onPress={() => setNuova(true)} />}
     >
       {nuova && (
         <NuovaScadenza
@@ -221,7 +234,7 @@ export default function Scadenze() {
       <Errore testo={errore} />
       {dati === null && !errore && <ActivityIndicator style={styles.caricamento} />}
       {dati?.length === 0 && !nuova && (
-        <Vuoto icona="calendar-check-outline" titolo="Nessuna scadenza" testo="L’amministratore può inserire revisioni, polizze e manutenzioni." />
+        <Vuoto icona="calendar-check-outline" titolo="Nessuna scadenza" testo="Inserisci revisioni, polizze e manutenzioni da ricordare." />
       )}
 
       {scadute.length > 0 && <Titoletto>Scadute</Titoletto>}

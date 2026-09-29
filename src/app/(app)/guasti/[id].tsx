@@ -16,7 +16,8 @@ import { autore, dataOra } from '@/lib/formato';
 import { STATI, stato } from '@/lib/guasti';
 import { supabase } from '@/lib/supabase';
 import { useTinte } from '@/lib/tema';
-import type { Commento, Guasto, StatoGuasto } from '@/lib/tipi';
+import { usePermessi } from '@/lib/permessi';
+import type { Autore, Commento, Guasto, StatoGuasto } from '@/lib/tipi';
 import { useDati } from '@/lib/useDati';
 
 // Tre pallini collegati: Aperto -> In lavorazione -> Risolto
@@ -59,7 +60,8 @@ function Avanzamento({ attuale }: { attuale: StatoGuasto }) {
   );
 }
 
-function GestioneAdmin({ guasto, onSalvato }: { guasto: Guasto; onSalvato: () => void }) {
+// Aggiornamento dello stato: l'amministratore, o tutti se il permesso "Stato dei guasti" è aperto
+function AggiornaStato({ guasto, puoEliminare, onSalvato }: { guasto: Guasto; puoEliminare: boolean; onSalvato: () => void }) {
   const [nuovoStato, setNuovoStato] = useState<StatoGuasto>(guasto.stato);
   const [nota, setNota] = useState(guasto.nota_admin ?? '');
   const [inCorso, setInCorso] = useState(false);
@@ -85,7 +87,7 @@ function GestioneAdmin({ guasto, onSalvato }: { guasto: Guasto; onSalvato: () =>
 
   return (
     <>
-      <Titoletto>Gestione amministratore</Titoletto>
+      <Titoletto>Aggiorna lo stato</Titoletto>
       <Riquadro>
         <SegmentedButtons
           value={nuovoStato}
@@ -93,7 +95,7 @@ function GestioneAdmin({ guasto, onSalvato }: { guasto: Guasto; onSalvato: () =>
           buttons={STATI.map((s) => ({ value: s.valore, label: s.etichetta }))}
         />
         <TextInput
-          label="Nota per i condòmini (es. tecnico chiamato per giovedì)"
+          label="Aggiornamento per tutti (es. tecnico chiamato per giovedì)"
           mode="outlined"
           value={nota}
           onChangeText={setNota}
@@ -101,7 +103,7 @@ function GestioneAdmin({ guasto, onSalvato }: { guasto: Guasto; onSalvato: () =>
         />
         <Errore testo={errore} />
         <View style={styles.azioni}>
-          <BottoneConferma etichetta="Elimina" conferma="Elimina guasto" onConferma={elimina} />
+          {puoEliminare && <BottoneConferma etichetta="Elimina" conferma="Elimina guasto" onConferma={elimina} />}
           <Button mode="contained" onPress={salva} loading={inCorso} disabled={inCorso}>
             Salva
           </Button>
@@ -145,6 +147,49 @@ function AggiungiFoto({ guasto, onAggiunte }: { guasto: Guasto; onAggiunte: () =
       )}
       <Errore testo={errore} />
     </View>
+  );
+}
+
+// Storico dei cambi di stato (lo scrive il database, vedi supabase/08-...sql)
+function Storia({ guasto }: { guasto: Guasto }) {
+  const tema = useTheme();
+  const tinte = useTinte();
+  const leggi = useCallback(
+    () =>
+      supabase
+        .from('guasti_storia')
+        .select('id, stato, nota, creato_il, autore:profili(nome, appartamento)')
+        .eq('guasto_id', guasto.id)
+        .order('creato_il', { ascending: false })
+        .returns<{ id: string; stato: StatoGuasto; nota: string | null; creato_il: string; autore: Autore }[]>(),
+    [guasto.id],
+  );
+  const { dati, errore } = useDati(leggi);
+  if (errore || !dati?.length) return null;
+  return (
+    <>
+      <Titoletto>Storico</Titoletto>
+      <Riquadro>
+        {dati.map((v, i) => {
+          const s = stato(v.stato);
+          return (
+            <View key={v.id} style={styles.voceStoria}>
+              <View style={styles.colonnaStoria}>
+                <Icon source={s.icona} size={18} color={tinte[s.tinta].testo} />
+                {i < dati.length - 1 && <View style={[styles.lineaStoria, { backgroundColor: tema.colors.outlineVariant }]} />}
+              </View>
+              <View style={styles.flex}>
+                <Text variant="bodyMedium">
+                  <Text style={styles.grassetto}>{s.etichetta}</Text> · {autore(v.autore)}
+                </Text>
+                <Nota>{dataOra(v.creato_il)}</Nota>
+                {!!v.nota && <Text variant="bodySmall">{v.nota}</Text>}
+              </View>
+            </View>
+          );
+        })}
+      </Riquadro>
+    </>
   );
 }
 
@@ -260,6 +305,7 @@ export default function DettaglioGuasto() {
     return { data, error };
   }, [id]);
   const { dati: g, errore, ricarica } = useDati(leggi);
+  const { puo } = usePermessi();
 
   if (errore)
     return (
@@ -317,7 +363,10 @@ export default function DettaglioGuasto() {
 
       <Commenti guasto={g} />
 
-      {admin && <GestioneAdmin key={g.aggiornato_il} guasto={g} onSalvato={ricarica} />}
+      {puo('guasti_stato') && <AggiornaStato key={g.aggiornato_il} guasto={g} puoEliminare={admin} onSalvato={ricarica} />}
+
+      {/* key: quando il guasto viene aggiornato lo storico si ricarica */}
+      <Storia key={g.aggiornato_il} guasto={g} />
     </Pagina>
   );
 }
@@ -339,4 +388,8 @@ const styles = StyleSheet.create({
   testaCommento: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   scrivi: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   flex: { flex: 1 },
+  voceStoria: { flexDirection: 'row', gap: 10 },
+  colonnaStoria: { alignItems: 'center', width: 18 },
+  lineaStoria: { width: 2, flex: 1, marginVertical: 2, minHeight: 16 },
+  grassetto: { fontWeight: 'bold' },
 });

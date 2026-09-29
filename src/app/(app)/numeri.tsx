@@ -8,6 +8,7 @@ import { BottoneConferma } from '@/components/BottoneConferma';
 import { Pagina } from '@/components/Pagina';
 import { BottoneNuovo, Errore, IconaTonda, Nota, Riquadro, Titoletto, Vuoto } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
+import { usePermessi } from '@/lib/permessi';
 import { supabase } from '@/lib/supabase';
 import { useTinte } from '@/lib/tema';
 import type { NumeroUtile } from '@/lib/tipi';
@@ -99,6 +100,7 @@ export default function Numeri() {
   const tema = useTheme();
   const tinte = useTinte();
   const admin = profilo?.ruolo === 'amministratore';
+  const { puo } = usePermessi();
   const [nuovo, setNuovo] = useState(false);
 
   const leggi = useCallback(() => supabase.from('numeri_utili').select('*').order('nome').returns<NumeroUtile[]>(), []);
@@ -142,7 +144,7 @@ export default function Numeri() {
             accessibilityLabel={`Chiama ${n.nome}`}
           />
         )}
-        {admin && <BottoneConferma etichetta="" conferma="Elimina" onConferma={() => elimina(n)} />}
+        {(admin || n.autore_id === profilo?.id) && <BottoneConferma etichetta="" conferma="Elimina" onConferma={() => elimina(n)} />}
       </Riquadro>
     );
   }
@@ -153,7 +155,7 @@ export default function Numeri() {
       sottotitolo="Tocca il telefono per chiamare"
       onAggiorna={aggiorna}
       aggiornamento={aggiornamento}
-      fisso={admin && !nuovo && <BottoneNuovo etichetta="Aggiungi numero" onPress={() => setNuovo(true)} />}
+      fisso={puo('numeri') && !nuovo && <BottoneNuovo etichetta="Aggiungi numero" onPress={() => setNuovo(true)} />}
     >
       {nuovo && (
         <NuovoNumero
@@ -167,7 +169,7 @@ export default function Numeri() {
       <Errore testo={errore} />
       {dati === null && !errore && <ActivityIndicator style={styles.caricamento} />}
       {dati?.length === 0 && !nuovo && (
-        <Vuoto icona="phone-outline" titolo="Nessun numero" testo="L’amministratore può aggiungere idraulico, elettricista, emergenze..." />
+        <Vuoto icona="phone-outline" titolo="Nessun numero" testo="Aggiungi idraulico, elettricista, emergenze..." />
       )}
       {gruppi.map((g) => (
         <View key={g.nome} style={styles.gruppo}>

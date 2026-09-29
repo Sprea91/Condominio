@@ -2,7 +2,7 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Button, Text, TextInput } from 'react-native-paper';
+import { Button, SegmentedButtons, Text, TextInput } from 'react-native-paper';
 
 import { CampoData } from '@/components/CampoData';
 import { Pagina } from '@/components/Pagina';
@@ -10,7 +10,9 @@ import { SceltaFile } from '@/components/SceltaFile';
 import { Errore, Nota, Riquadro } from '@/components/ui';
 import { caricaFile, TIPI_DOCUMENTO, type FileScelto } from '@/lib/file';
 import { leggiData, leggiNumero, oggi } from '@/lib/formato';
+import { STATI_LAVORO } from '@/lib/lavori';
 import { supabase } from '@/lib/supabase';
+import type { StatoLavoro } from '@/lib/tipi';
 
 export default function NuovoLavoro() {
   const [titolo, setTitolo] = useState('');
@@ -20,6 +22,7 @@ export default function NuovoLavoro() {
   const [importo, setImporto] = useState('');
   const [garanzia, setGaranzia] = useState('');
   const [fatture, setFatture] = useState<FileScelto[]>([]);
+  const [stato, setStato] = useState<StatoLavoro>('finito');
   const [inCorso, setInCorso] = useState(false);
   const [errore, setErrore] = useState('');
 
@@ -55,6 +58,8 @@ export default function NuovoLavoro() {
           ditta: ditta.trim() || null,
           importo: valore,
           garanzia_fino: garanziaDb,
+          // lo stato si manda solo se diverso da "finito" (colonna di supabase/08-...sql)
+          ...(stato !== 'finito' ? { stato } : {}),
         })
         .select('id')
         .single();
@@ -77,6 +82,11 @@ export default function NuovoLavoro() {
   return (
     <Pagina titolo="Nuovo lavoro" sottotitolo="Resterà nello storico del condominio">
       <Riquadro>
+        <SegmentedButtons
+          value={stato}
+          onValueChange={(v) => setStato(v as StatoLavoro)}
+          buttons={STATI_LAVORO.map((s) => ({ value: s.valore, label: s.etichetta }))}
+        />
         <TextInput label="Lavoro (es. Rifacimento tetto)" mode="outlined" value={titolo} onChangeText={setTitolo} />
         <TextInput
           label="Descrizione (facoltativa)"

@@ -138,19 +138,31 @@ export type Documento = {
   nome_file: string;
   tipo_mime: string;
   creato_il: string;
+  autore_id?: string | null;
 };
 
 export type CategoriaAllegatoLavoro = 'fattura' | 'garanzia' | 'foto' | 'altro';
 
+export type StatoLavoro = 'programmato' | 'in_corso' | 'finito';
+
 export type Lavoro = {
   id: string;
+  stato?: StatoLavoro; // colonna di supabase/08-...sql
+  autore_id?: string | null;
   titolo: string;
   descrizione: string | null;
   data_lavoro: string;
   ditta: string | null;
   importo: number | null;
   garanzia_fino: string | null;
-  lavori_allegati: { id: string; categoria: CategoriaAllegatoLavoro; percorso: string; nome_file: string; tipo_mime: string }[];
+  lavori_allegati: {
+    id: string;
+    categoria: CategoriaAllegatoLavoro;
+    percorso: string;
+    nome_file: string;
+    tipo_mime: string;
+    autore_id?: string | null;
+  }[];
 };
 
 export type NumeroUtile = {
@@ -160,6 +172,7 @@ export type NumeroUtile = {
   telefono: string | null;
   email: string | null;
   note: string | null;
+  autore_id?: string | null;
 };
 
 export type Commento = {
@@ -202,4 +215,5 @@ export type Scadenza = {
   categoria: string;
   ripetizione: Ripetizione;
   note: string | null;
+  autore_id?: string | null;
 };

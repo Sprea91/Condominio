@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { ActivityIndicator, Icon, Text } from 'react-native-paper';
 
+import { PannelloPermessi } from '@/components/PannelloPermessi';
 import { Pagina } from '@/components/Pagina';
 import { SchedaCondomino } from '@/components/SchedaCondomino';
 import { Errore, Nota, Riquadro, Titoletto } from '@/components/ui';
@@ -87,6 +88,8 @@ export default function Condomini() {
           {attivi.map((p) => (
             <SchedaCondomino key={p.id} profilo={p} sonoIo={p.id === io?.id} contatti={contatti.get(p.id)} onModificato={dopoModifica} />
           ))}
+
+          <PannelloPermessi />
         </>
       )}
     </Pagina>
