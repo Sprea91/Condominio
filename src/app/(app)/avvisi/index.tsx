@@ -4,7 +4,7 @@
 import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Button, Text } from 'react-native-paper';
+import { ActivityIndicator, Button, Icon, IconButton, Text } from 'react-native-paper';
 
 import { Allegati } from '@/components/Allegati';
 import { BottoneConferma } from '@/components/BottoneConferma';
@@ -12,13 +12,51 @@ import { CampoRicerca, corrisponde } from '@/components/CampoRicerca';
 import { Pagina } from '@/components/Pagina';
 import { BottoneNuovo, Errore, Etichetta, Nota, Riquadro, Vuoto } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
+import { scaricaIcsEvento } from '@/lib/calendario';
 import { eliminaFile } from '@/lib/file';
-import { autore, dataOra } from '@/lib/formato';
+import { autore, dataLunga, dataOra, ora, traQuanto } from '@/lib/formato';
 import { segnaVisitati, ultimaVisita } from '@/lib/letti';
 import { supabase } from '@/lib/supabase';
 import { useTinte } from '@/lib/tema';
 import type { Avviso } from '@/lib/tipi';
 import { useDati } from '@/lib/useDati';
+
+// Riquadro con giorno, ora e luogo dell'appuntamento + "Aggiungi al calendario"
+function Appuntamento({ avviso }: { avviso: Avviso }) {
+  const tinte = useTinte();
+  const passato = new Date(avviso.appuntamento!) < new Date();
+  const t = passato ? tinte.grigio : tinte.arancio;
+  return (
+    <View style={[styles.appuntamento, { backgroundColor: t.sfondo }]}>
+      <Icon source="calendar-clock" size={26} color={t.testo} />
+      <View style={styles.flex}>
+        <Text variant="titleSmall" style={[styles.maiuscolaIniziale, { color: t.testo }]}>
+          {dataLunga(avviso.appuntamento!)} · ore {ora(avviso.appuntamento!)}
+        </Text>
+        <Text variant="bodySmall" style={{ color: t.testo }}>
+          {passato ? 'Appuntamento passato' : traQuanto(avviso.appuntamento!)}
+          {avviso.appuntamento_luogo ? ` · ${avviso.appuntamento_luogo}` : ''}
+        </Text>
+      </View>
+      {!passato && (
+        <IconButton
+          icon="calendar-plus"
+          iconColor={t.testo}
+          onPress={() =>
+            scaricaIcsEvento({
+              id: avviso.id,
+              titolo: avviso.titolo,
+              inizio: avviso.appuntamento!,
+              luogo: avviso.appuntamento_luogo,
+              descrizione: avviso.testo,
+            })
+          }
+          accessibilityLabel="Aggiungi al calendario"
+        />
+      )}
+    </View>
+  );
+}
 
 export default function Avvisi() {
   const { profilo } = useAuth();
@@ -95,6 +133,7 @@ export default function Avvisi() {
             <Nota>
               {dataOra(a.creato_il)} · {autore(a.autore)}
             </Nota>
+            {!!a.appuntamento && <Appuntamento avviso={a} />}
             <Text variant="bodyLarge" style={styles.testo}>
               {a.testo}
             </Text>
@@ -121,5 +160,8 @@ const styles = StyleSheet.create({
   caricamento: { marginTop: 32 },
   etichette: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
   testo: { lineHeight: 24 },
+  appuntamento: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 14, padding: 12 },
+  flex: { flex: 1 },
+  maiuscolaIniziale: { textTransform: 'capitalize' },
   azioni: { flexDirection: 'row', justifyContent: 'flex-end', flexWrap: 'wrap', gap: 4 },
 });

@@ -29,6 +29,8 @@ export type Avviso = {
   testo: string;
   creato_il: string;
   in_evidenza?: boolean; // colonna aggiunta da supabase/04-migliorie.sql
+  appuntamento?: string | null; // data e ora dell'appuntamento (supabase/17-...sql)
+  appuntamento_luogo?: string | null;
   autore: Autore;
   avvisi_allegati: AllegatoAvviso[];
 };

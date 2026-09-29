@@ -19,13 +19,22 @@ import { useTinte, type Tinta } from '@/lib/tema';
 import type { RispostaPresenza, Sondaggio } from '@/lib/tipi';
 import { useDati } from '@/lib/useDati';
 
-type AvvisoBreve = { id: string; titolo: string; testo: string; creato_il: string; in_evidenza?: boolean };
+type AvvisoBreve = {
+  id: string;
+  titolo: string;
+  testo: string;
+  creato_il: string;
+  in_evidenza?: boolean;
+  appuntamento?: string | null;
+  appuntamento_luogo?: string | null;
+};
 
 type Riepilogo = {
   saldo: number;
   avvisiNuovi: number;
   ultimoAvviso: AvvisoBreve | null;
   inEvidenza: AvvisoBreve[];
+  appuntamenti: AvvisoBreve[]; // avvisi con un appuntamento non ancora passato, dal più vicino
   guastiAperti: number;
   sondaggiDaVotare: number;
   // sondaggi aperti che scadono entro GIORNI_SONDAGGIO_IMMINENTE giorni
@@ -142,6 +151,9 @@ export default function Home() {
       avvisiNuovi: (a.data ?? []).filter((x) => !visita || x.creato_il > visita).length,
       ultimoAvviso: (a.data?.[0] as AvvisoBreve | undefined) ?? null,
       inEvidenza: ((a.data ?? []) as AvvisoBreve[]).filter((x) => x.in_evidenza),
+      appuntamenti: ((a.data ?? []) as AvvisoBreve[])
+        .filter((x) => x.appuntamento && new Date(x.appuntamento) > new Date(Date.now() - 2 * 60 * 60 * 1000))
+        .sort((x, y) => x.appuntamento!.localeCompare(y.appuntamento!)),
       guastiAperti: g.data?.length ?? 0,
       sondaggiDaVotare: ((so.data ?? []) as Sondaggio[]).filter((x) => aperto(x) && !votati.has(x.id)).length,
       sondaggiInScadenza: ((so.data ?? []) as Sondaggio[])
@@ -206,6 +218,31 @@ export default function Home() {
           Cerca in avvisi, assemblee, lavori, documenti...
         </Text>
       </Pressable>
+
+      {/* Prossimi appuntamenti (dagli avvisi con giorno e ora) */}
+      {dati?.appuntamenti.map((a) => (
+        <Riquadro
+          key={`app-${a.id}`}
+          onPress={() => router.push('/avvisi')}
+          style={[styles.rigaAvviso, { backgroundColor: tinte.arancio.sfondo, borderColor: tinte.arancio.sfondo }]}
+        >
+          <DataCalendario iso={a.appuntamento!} />
+          <View style={styles.flex}>
+            <Text variant="labelMedium" style={{ color: tinte.arancio.testo }}>
+              {`Appuntamento · ${traQuanto(a.appuntamento!)} alle ${ora(a.appuntamento!)}`}
+            </Text>
+            <Text variant="titleSmall" numberOfLines={2} style={{ color: tinte.arancio.testo }}>
+              {a.titolo}
+            </Text>
+            {!!a.appuntamento_luogo && (
+              <Text variant="bodySmall" style={{ color: tinte.arancio.testo }}>
+                {a.appuntamento_luogo}
+              </Text>
+            )}
+          </View>
+          <Icon source="chevron-right" size={20} color={tinte.arancio.testo} />
+        </Riquadro>
+      ))}
 
       {/* Avvisi in evidenza (li sceglie l'amministratore dalla bacheca) */}
       {dati?.inEvidenza.map((a) => (

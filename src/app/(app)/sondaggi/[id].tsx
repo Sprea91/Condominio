@@ -4,16 +4,17 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Button, Icon, Text, useTheme } from 'react-native-paper';
+import { ActivityIndicator, Button, Icon, IconButton, Text, TextInput, useTheme } from 'react-native-paper';
 
 import { Allegati } from '@/components/Allegati';
 import { BottoneConferma } from '@/components/BottoneConferma';
+import { CampoData } from '@/components/CampoData';
 import { Pagina } from '@/components/Pagina';
 import { SceltaFile } from '@/components/SceltaFile';
 import { Errore, Etichetta, IconaTonda, Nota, Riquadro, Titoletto } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { apriFile, caricaFile, eliminaFile, TIPI_DOCUMENTO, type FileScelto } from '@/lib/file';
-import { dataOra, euro, millesimi } from '@/lib/formato';
+import { dataOra, euro, leggiData, millesimi } from '@/lib/formato';
 import { aperto } from '@/lib/sondaggi';
 import { supabase } from '@/lib/supabase';
 import { useTinte } from '@/lib/tema';
@@ -113,6 +114,115 @@ function DocumentiSondaggio({ sondaggioId, admin }: { sondaggioId: string; admin
   );
 }
 
+// Modifica del sondaggio (solo amministratore). Le opzioni si cambiano solo se nessuno ha ancora votato,
+// altrimenti i voti già dati non avrebbero più senso.
+function ModificaSondaggio({ sondaggio, ciSonoVoti, onFatto }: { sondaggio: Sondaggio; ciSonoVoti: boolean; onFatto: (salvato: boolean) => void }) {
+  const giornoDa = (iso: string | null) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+  };
+  const [domanda, setDomanda] = useState(sondaggio.domanda);
+  const [descrizione, setDescrizione] = useState(sondaggio.descrizione ?? '');
+  const [scadenza, setScadenza] = useState(giornoDa(sondaggio.scadenza));
+  const [opzioni, setOpzioni] = useState(sondaggio.sondaggi_opzioni.map((o) => ({ id: o.id as string | null, testo: o.testo })));
+  const [inCorso, setInCorso] = useState(false);
+  const [errore, setErrore] = useState('');
+
+  async function salva() {
+    setErrore('');
+    if (!domanda.trim()) {
+      setErrore('La domanda non può essere vuota.');
+      return;
+    }
+    let scadenzaIso: string | null = null;
+    if (scadenza.trim()) {
+      const g = leggiData(scadenza);
+      if (!g) {
+        setErrore('Scadenza non valida.');
+        return;
+      }
+      scadenzaIso = new Date(`${g}T23:59:59`).toISOString();
+    }
+    const valide = opzioni.filter((o) => o.testo.trim());
+    if (!ciSonoVoti && valide.length < 2) {
+      setErrore('Servono almeno 2 opzioni.');
+      return;
+    }
+    setInCorso(true);
+    try {
+      const { error } = await supabase
+        .from('sondaggi')
+        .update({ domanda: domanda.trim(), descrizione: descrizione.trim() || null, scadenza: scadenzaIso })
+        .eq('id', sondaggio.id);
+      if (error) throw new Error(error.message);
+      if (!ciSonoVoti) {
+        // opzioni tolte
+        const rimaste = new Set(valide.map((o) => o.id).filter(Boolean));
+        for (const o of sondaggio.sondaggi_opzioni) {
+          if (!rimaste.has(o.id)) {
+            const { error: e } = await supabase.from('sondaggi_opzioni').delete().eq('id', o.id);
+            if (e) throw new Error(e.message);
+          }
+        }
+        // opzioni cambiate o nuove, nell'ordine attuale
+        for (const [ordine, o] of valide.entries()) {
+          const { error: e } = o.id
+            ? await supabase.from('sondaggi_opzioni').update({ testo: o.testo.trim(), ordine }).eq('id', o.id)
+            : await supabase.from('sondaggi_opzioni').insert({ sondaggio_id: sondaggio.id, testo: o.testo.trim(), ordine });
+          if (e) throw new Error(e.message);
+        }
+      }
+      onFatto(true);
+    } catch (e) {
+      setErrore(`Errore: ${(e as Error).message}`);
+    } finally {
+      setInCorso(false);
+    }
+  }
+
+  return (
+    <Riquadro evidenziato>
+      <Text variant="titleSmall">Modifica sondaggio</Text>
+      <TextInput label="Domanda" mode="outlined" value={domanda} onChangeText={setDomanda} multiline />
+      <TextInput label="Descrizione" mode="outlined" value={descrizione} onChangeText={setDescrizione} multiline numberOfLines={3} />
+      <CampoData label="Scadenza (facoltativa)" value={scadenza} onChangeText={setScadenza} svuotabile />
+      <Text variant="titleSmall">Opzioni</Text>
+      {ciSonoVoti ? (
+        <Nota>Qualcuno ha già votato: le opzioni non si possono più cambiare.</Nota>
+      ) : (
+        <>
+          {opzioni.map((o, i) => (
+            <View key={o.id ?? `nuova-${i}`} style={styles.rigaRisultato}>
+              <TextInput
+                style={styles.flex}
+                label={`Opzione ${i + 1}`}
+                mode="outlined"
+                dense
+                value={o.testo}
+                onChangeText={(t) => setOpzioni(opzioni.map((x, j) => (j === i ? { ...x, testo: t } : x)))}
+              />
+              <IconButton icon="close" onPress={() => setOpzioni(opzioni.filter((_, j) => j !== i))} />
+            </View>
+          ))}
+          <Button mode="text" icon="plus" onPress={() => setOpzioni([...opzioni, { id: null, testo: '' }])} style={styles.sinistra}>
+            Aggiungi opzione
+          </Button>
+        </>
+      )}
+      <Errore testo={errore} />
+      <View style={styles.azioni}>
+        <Button onPress={() => onFatto(false)} disabled={inCorso}>
+          Annulla
+        </Button>
+        <Button mode="contained" onPress={salva} loading={inCorso} disabled={inCorso}>
+          Salva modifiche
+        </Button>
+      </View>
+    </Riquadro>
+  );
+}
+
 export default function DettaglioSondaggio() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { profilo } = useAuth();
@@ -121,6 +231,7 @@ export default function DettaglioSondaggio() {
   const admin = profilo?.ruolo === 'amministratore';
   const [scelta, setScelta] = useState<string[]>([]);
   const [cambio, setCambio] = useState(false);
+  const [modifica, setModifica] = useState(false);
   const [inCorso, setInCorso] = useState(false);
   const [errore, setErrore] = useState('');
 
@@ -417,8 +528,23 @@ export default function DettaglioSondaggio() {
       {admin && (
         <>
           <Titoletto>Gestione amministratore</Titoletto>
+          {modifica && (
+            <ModificaSondaggio
+              sondaggio={s}
+              ciSonoVoti={totaleTeste > 0}
+              onFatto={(salvato) => {
+                setModifica(false);
+                if (salvato) ricarica();
+              }}
+            />
+          )}
           <Riquadro style={styles.azioni}>
             <BottoneConferma etichetta="Elimina" conferma="Elimina sondaggio" onConferma={elimina} />
+            {!modifica && (
+              <Button mode="outlined" icon="pencil-outline" onPress={() => setModifica(true)}>
+                Modifica
+              </Button>
+            )}
             <Button mode="contained-tonal" icon={s.chiuso ? 'lock-open-outline' : 'lock-outline'} onPress={() => chiudi(!s.chiuso)}>
               {s.chiuso ? 'Riapri votazione' : 'Chiudi votazione'}
             </Button>
@@ -444,4 +570,5 @@ const styles = StyleSheet.create({
   riempimento: { height: '100%', borderRadius: 5 },
   partecipazione: { borderTopWidth: 1, paddingTop: 12, gap: 6 },
   centro: { alignSelf: 'center' },
+  sinistra: { alignSelf: 'flex-start' },
 });

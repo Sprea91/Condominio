@@ -88,3 +88,44 @@ export function apriGoogleCalendar(a: Assemblea) {
   });
   Linking.openURL(`https://calendar.google.com/calendar/render?${parametri.toString()}`);
 }
+
+// Versione generica per qualsiasi appuntamento (es. avvisi con data e ora)
+export type Evento = { id: string; titolo: string; inizio: string; luogo?: string | null; descrizione?: string | null; oreDurata?: number };
+
+export function scaricaIcsEvento(e: Evento) {
+  const inizio = new Date(e.inizio);
+  const fine = new Date(inizio.getTime() + (e.oreDurata ?? 1) * 60 * 60 * 1000);
+  const righe = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Condominio//Appuntamenti//IT',
+    'BEGIN:VEVENT',
+    `UID:evento-${e.id}@condominio`,
+    `DTSTAMP:${formatoIcs(new Date())}`,
+    `DTSTART:${formatoIcs(inizio)}`,
+    `DTEND:${formatoIcs(fine)}`,
+    `SUMMARY:${testoIcs(e.titolo)}`,
+    e.luogo ? `LOCATION:${testoIcs(e.luogo)}` : '',
+    e.descrizione ? `DESCRIPTION:${testoIcs(e.descrizione)}` : '',
+    'BEGIN:VALARM',
+    'TRIGGER:-PT12H',
+    'ACTION:DISPLAY',
+    `DESCRIPTION:${testoIcs(e.titolo)}`,
+    'END:VALARM',
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].filter(Boolean);
+  const contenuto = righe.join('\r\n');
+  if (Platform.OS === 'web') {
+    const blob = new Blob([contenuto], { type: 'text/calendar;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'appuntamento.ics';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(link.href), 10_000);
+  } else {
+    Linking.openURL(`data:text/calendar;charset=utf-8,${encodeURIComponent(contenuto)}`);
+  }
+}
