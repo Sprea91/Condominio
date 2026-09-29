@@ -5,7 +5,7 @@ import { Linking } from 'react-native';
 
 import { supabase } from './supabase';
 
-export type Bucket = 'avvisi' | 'guasti' | 'giustificativi' | 'assemblee' | 'documenti';
+export type Bucket = 'avvisi' | 'guasti' | 'giustificativi' | 'assemblee' | 'documenti' | 'ricevute';
 
 export type FileScelto = {
   uri: string;

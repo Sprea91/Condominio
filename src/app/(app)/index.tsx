@@ -35,6 +35,7 @@ type Riepilogo = {
   miaRisposta: RispostaPresenza | null;
   rateDaPagare: { totale: number; inRitardo: number; prossima: string | null };
   scadenzeVicine: number;
+  pagamentiDaConfermare: number;
 };
 
 const ALTRE: { titolo: string; dettaglio: string; icona: string; tinta: NomeTinta; link: Href }[] = [
@@ -103,7 +104,7 @@ export default function Home() {
     const id = profilo?.id ?? '';
     const oggi = new Date().toISOString().slice(0, 10);
     const tra30 = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
-    const [s, a, g, so, v, p, asm, pr, ra, sc] = await Promise.all([
+    const [s, a, g, so, v, p, asm, pr, ra, sc, pc] = await Promise.all([
       supabase.from('saldo').select('saldo').maybeSingle(),
       supabase.from('avvisi').select('*').order('creato_il', { ascending: false }),
       supabase.from('guasti').select('stato').neq('stato', 'chiuso'),
@@ -117,8 +118,16 @@ export default function Home() {
         .order('data_ora', { ascending: true })
         .limit(1),
       supabase.from('presenze').select('assemblea_id, risposta').eq('utente_id', id),
-      supabase.from('rate').select('importo, emissione:rate_emissioni(scadenza)').eq('utente_id', id).is('pagata_il', null),
+      // da pagare = non pagate e non ancora segnalate con "Ho pagato"
+      supabase
+        .from('rate')
+        .select('importo, emissione:rate_emissioni(scadenza)')
+        .eq('utente_id', id)
+        .is('pagata_il', null)
+        .is('segnalata_il', null),
       supabase.from('scadenze').select('id', { count: 'exact', head: true }).lte('data', tra30),
+      // per l'amministratore: segnalazioni "Ho pagato" da confermare (gli altri vedono solo le proprie)
+      supabase.from('rate').select('id', { count: 'exact', head: true }).is('pagata_il', null).not('segnalata_il', 'is', null),
     ]);
     // Le assemblee arrivano con supabase/05-...sql: se non c'è ancora, la Home funziona lo stesso
     const error = s.error ?? a.error ?? g.error ?? so.error ?? v.error;
@@ -147,6 +156,7 @@ export default function Home() {
       rateDaPagare: { totale: 0, inRitardo: 0, prossima: null },
       // Rate e scadenze arrivano con supabase/07-...sql: se mancano si ignorano
       scadenzeVicine: sc.error ? 0 : (sc.count ?? 0),
+      pagamentiDaConfermare: pc.error ? 0 : (pc.count ?? 0),
     };
     if (!ra.error) {
       const rate = (ra.data ?? []) as unknown as { importo: number; emissione: { scadenza: string } | null }[];
@@ -289,6 +299,22 @@ export default function Home() {
             </Text>
           </View>
           <Icon source="chevron-right" size={20} color={(dati.rateDaPagare.inRitardo ? tinte.rosso : tinte.viola).testo} />
+        </Riquadro>
+      )}
+
+      {/* Pagamenti da confermare (solo amministratore) */}
+      {admin && !!dati?.pagamentiDaConfermare && (
+        <Riquadro
+          onPress={() => router.push('/rate')}
+          style={[styles.rigaAvviso, { backgroundColor: tinte.blu.sfondo, borderColor: tinte.blu.sfondo }]}
+        >
+          <Icon source="cash-check" size={22} color={tinte.blu.testo} />
+          <Text variant="titleSmall" style={[styles.flex, { color: tinte.blu.testo }]}>
+            {dati.pagamentiDaConfermare === 1
+              ? '1 pagamento da confermare'
+              : `${dati.pagamentiDaConfermare} pagamenti da confermare`}
+          </Text>
+          <Icon source="chevron-right" size={20} color={tinte.blu.testo} />
         </Riquadro>
       )}
 

@@ -205,6 +205,11 @@ export type Rata = {
   importo: number;
   pagata_il: string | null;
   movimento_id: string | null;
+  // segnalazione "Ho pagato" del condòmino (supabase/10-...sql)
+  segnalata_il?: string | null;
+  segnalata_nota?: string | null;
+  ricevuta_path?: string | null;
+  ricevuta_nome?: string | null;
   emissione?: EmissioneRate | null;
   profilo?: { nome: string | null; appartamento: string | null; millesimi: number } | null;
 };

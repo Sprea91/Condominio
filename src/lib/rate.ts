@@ -27,10 +27,12 @@ export function ripartisci(totale: number, condomini: Quota[], modo: Exclude<Rip
   return risultato;
 }
 
-export type StatoRata = 'pagata' | 'in_ritardo' | 'da_pagare';
+export type StatoRata = 'pagata' | 'in_verifica' | 'in_ritardo' | 'da_pagare';
 
-export function statoRata(r: Pick<Rata, 'pagata_il'> & { scadenza?: string }): StatoRata {
+// in_verifica = il condòmino ha detto "Ho pagato", l'amministratore deve confermare
+export function statoRata(r: Pick<Rata, 'pagata_il' | 'segnalata_il'> & { scadenza?: string }): StatoRata {
   if (r.pagata_il) return 'pagata';
+  if (r.segnalata_il) return 'in_verifica';
   if (r.scadenza && r.scadenza < oggiIso()) return 'in_ritardo';
   return 'da_pagare';
 }
