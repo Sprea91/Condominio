@@ -13,7 +13,7 @@ import { useAuth } from '@/lib/auth';
 import { copia } from '@/lib/copia';
 import { apriFile, caricaFile, eliminaFile, TIPI_IMMAGINE_PDF, type FileScelto } from '@/lib/file';
 import { data, euro } from '@/lib/formato';
-import { statoRata } from '@/lib/rate';
+import { causaleBonifico, statoRata } from '@/lib/rate';
 import { supabase } from '@/lib/supabase';
 import { useTinte } from '@/lib/tema';
 import type { EmissioneRate, Rata } from '@/lib/tipi';
@@ -67,9 +67,19 @@ function RataDaPagare({
   inRitardo: boolean;
   onSegnalata: () => void;
 }) {
-  const { session } = useAuth();
+  const { session, profilo } = useAuth();
   const tinte = useTinte();
+  const tema = useTheme();
   const [aperto, setAperto] = useState(false);
+  const [copiata, setCopiata] = useState(false);
+  const causale = causaleBonifico(rata.emissione.causale, rata.emissione.titolo, profilo);
+
+  async function copiaCausale() {
+    if (await copia(causale)) {
+      setCopiata(true);
+      setTimeout(() => setCopiata(false), 2000);
+    }
+  }
   const [nota, setNota] = useState('');
   const [ricevuta, setRicevuta] = useState<FileScelto[]>([]);
   const [inCorso, setInCorso] = useState(false);
@@ -117,6 +127,17 @@ function RataDaPagare({
           </Nota>
         </View>
         <Text variant="titleMedium">{euro(rata.importo)}</Text>
+      </View>
+      <View style={[styles.causale, { backgroundColor: tema.colors.surfaceVariant }]}>
+        <View style={styles.flex}>
+          <Nota>Causale del bonifico</Nota>
+          <Text variant="bodyMedium" selectable>
+            {causale}
+          </Text>
+        </View>
+        <Button compact icon={copiata ? 'check' : 'content-copy'} onPress={copiaCausale}>
+          {copiata ? 'Copiata' : 'Copia'}
+        </Button>
       </View>
       {!aperto ? (
         <Button mode="contained-tonal" icon="check" onPress={() => setAperto(true)}>
@@ -390,5 +411,6 @@ const styles = StyleSheet.create({
   flex: { flex: 1, gap: 2 },
   azioni: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
   barra: { height: 8, borderRadius: 4, overflow: 'hidden' },
+  causale: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 12, padding: 10 },
   riempimento: { height: '100%', borderRadius: 4 },
 });

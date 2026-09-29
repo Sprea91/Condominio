@@ -27,6 +27,30 @@ export function ripartisci(totale: number, condomini: Quota[], modo: Exclude<Rip
   return risultato;
 }
 
+export const CAUSALE_PREDEFINITA = '{titolo} - App. {appartamento} - {nome}';
+
+// Causale del bonifico per un condòmino.
+// Senza modello: "titolo - App. X - Nome" (le parti mancanti si saltano).
+// Con un modello scritto dall'amministratore: si sostituiscono {titolo}, {appartamento} e {nome}.
+export function causaleBonifico(
+  modello: string | null | undefined,
+  titolo: string,
+  profilo: { nome: string | null; appartamento: string | null } | null | undefined,
+) {
+  if (!modello?.trim() || modello.trim() === CAUSALE_PREDEFINITA) {
+    return [titolo, profilo?.appartamento ? `App. ${profilo.appartamento}` : '', profilo?.nome ?? '']
+      .map((x) => x.trim())
+      .filter(Boolean)
+      .join(' - ');
+  }
+  return modello
+    .replace(/\{titolo\}/gi, titolo)
+    .replace(/\{appartamento\}/gi, profilo?.appartamento ?? '')
+    .replace(/\{nome\}/gi, profilo?.nome ?? '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
 export type StatoRata = 'pagata' | 'in_verifica' | 'in_ritardo' | 'da_pagare';
 
 // in_verifica = il condòmino ha detto "Ho pagato", l'amministratore deve confermare

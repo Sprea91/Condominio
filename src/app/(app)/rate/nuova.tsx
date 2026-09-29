@@ -9,7 +9,7 @@ import { CampoData } from '@/components/CampoData';
 import { Pagina } from '@/components/Pagina';
 import { Errore, Nota, Riquadro } from '@/components/ui';
 import { euro, leggiData, leggiNumero, millesimi } from '@/lib/formato';
-import { ripartisci } from '@/lib/rate';
+import { CAUSALE_PREDEFINITA, causaleBonifico, ripartisci } from '@/lib/rate';
 import { supabase } from '@/lib/supabase';
 import type { Ripartizione } from '@/lib/tipi';
 import { useDati } from '@/lib/useDati';
@@ -24,6 +24,7 @@ export default function NuovaRata() {
   const [modo, setModo] = useState<Ripartizione>('millesimi');
   const [manuali, setManuali] = useState<Record<string, string>>({});
   const [note, setNote] = useState('');
+  const [causale, setCausale] = useState('');
   const [inCorso, setInCorso] = useState(false);
   const [errore, setErrore] = useState('');
 
@@ -65,7 +66,15 @@ export default function NuovaRata() {
     try {
       const { data: emissione, error } = await supabase
         .from('rate_emissioni')
-        .insert({ titolo: titolo.trim(), scadenza: scadenzaDb, totale: totaleFinale, ripartizione: modo, note: note.trim() || null })
+        .insert({
+          titolo: titolo.trim(),
+          scadenza: scadenzaDb,
+          totale: totaleFinale,
+          ripartizione: modo,
+          note: note.trim() || null,
+          // la causale si manda solo se diversa da quella automatica (colonna di supabase/12-...sql)
+          ...(causale.trim() && causale.trim() !== CAUSALE_PREDEFINITA ? { causale: causale.trim() } : {}),
+        })
         .select('id')
         .single();
       if (error) throw new Error(error.message);
@@ -87,6 +96,27 @@ export default function NuovaRata() {
         <TextInput label="Titolo (es. Rata 1° trimestre 2026)" mode="outlined" value={titolo} onChangeText={setTitolo} />
         <CampoData label="Scadenza" value={scadenza} onChangeText={setScadenza} />
         <TextInput label="Note (facoltative)" mode="outlined" value={note} onChangeText={setNote} />
+      </Riquadro>
+
+      <Riquadro>
+        <Text variant="titleSmall">Causale del bonifico</Text>
+        <TextInput
+          mode="outlined"
+          value={causale}
+          onChangeText={setCausale}
+          placeholder={CAUSALE_PREDEFINITA}
+        />
+        <Nota>
+          Lascia vuoto per usare quella automatica. Puoi scrivere {'{appartamento}'} e {'{nome}'}: ognuno vedrà i propri dati.
+        </Nota>
+        {!!ordinati[0] && (
+          <Nota>
+            Esempio per {ordinati[0].nome ?? 'il primo condòmino'}:{' '}
+            <Text variant="bodySmall" style={styles.grassetto}>
+              {causaleBonifico(causale, titolo.trim() || 'Rata', ordinati[0])}
+            </Text>
+          </Nota>
+        )}
       </Riquadro>
 
       <Riquadro>
@@ -159,4 +189,5 @@ const styles = StyleSheet.create({
   importo: { width: 110 },
   totale: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   alto: { height: 48 },
+  grassetto: { fontWeight: 'bold' },
 });

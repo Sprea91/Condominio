@@ -197,6 +197,7 @@ export type EmissioneRate = {
   totale: number;
   ripartizione: Ripartizione;
   note: string | null;
+  causale?: string | null; // causale del bonifico, con {appartamento} e {nome} (supabase/12-...sql)
   creato_il: string;
 };
 
