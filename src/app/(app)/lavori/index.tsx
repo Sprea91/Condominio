@@ -1,10 +1,11 @@
 // Storico lavori: cosa è stato fatto nel condominio, quando, da chi, quanto è costato
 // e fino a quando vale la garanzia. Raggruppati per anno, dal più recente.
 import { router } from 'expo-router';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Icon, Text, useTheme } from 'react-native-paper';
 
+import { CampoRicerca, corrisponde } from '@/components/CampoRicerca';
 import { Pagina } from '@/components/Pagina';
 import { BottoneNuovo, Errore, Etichetta, IconaTonda, Nota, Riquadro, Titoletto, Vuoto } from '@/components/ui';
 import { data, euro } from '@/lib/formato';
@@ -19,6 +20,7 @@ export default function Lavori() {
   const tema = useTheme();
   const tinte = useTinte();
   const { puo } = usePermessi();
+  const [cerca, setCerca] = useState('');
 
   const leggi = useCallback(
     () =>
@@ -31,7 +33,10 @@ export default function Lavori() {
   );
   const { dati, errore, aggiorna, aggiornamento } = useDati(leggi);
 
-  const anni = [...new Set((dati ?? []).map((l) => l.data_lavoro.slice(0, 4)))];
+  const trovati = (dati ?? []).filter((l) =>
+    corrisponde(cerca, l.titolo, l.descrizione, l.ditta, ...l.lavori_allegati.map((f) => f.nome_file)),
+  );
+  const anni = [...new Set(trovati.map((l) => l.data_lavoro.slice(0, 4)))];
   const inGaranzia = (dati ?? []).filter((l) => statoGaranzia(l)?.valida).length;
 
   return (
@@ -42,6 +47,7 @@ export default function Lavori() {
       aggiornamento={aggiornamento}
       fisso={puo('lavori') && <BottoneNuovo etichetta="Nuovo lavoro" onPress={() => router.push('/lavori/nuovo')} />}
     >
+      <CampoRicerca valore={cerca} onCambia={setCerca} segnaposto="Cerca nei lavori (es. tetto, caldaia, ditta)" />
       <Errore testo={errore} />
       {dati === null && !errore && <ActivityIndicator style={styles.caricamento} />}
       {dati?.length === 0 && (
@@ -51,7 +57,7 @@ export default function Lavori() {
       {anni.map((anno) => (
         <View key={anno} style={styles.gruppo}>
           <Titoletto>{anno}</Titoletto>
-          {(dati ?? [])
+          {trovati
             .filter((l) => l.data_lavoro.startsWith(anno))
             .map((l) => {
               const g = statoGaranzia(l);

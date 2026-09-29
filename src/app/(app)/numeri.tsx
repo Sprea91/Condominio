@@ -5,6 +5,7 @@ import { Linking, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Button, Chip, IconButton, Text, TextInput, useTheme } from 'react-native-paper';
 
 import { BottoneConferma } from '@/components/BottoneConferma';
+import { CampoRicerca, corrisponde } from '@/components/CampoRicerca';
 import { Pagina } from '@/components/Pagina';
 import { BottoneNuovo, Errore, IconaTonda, Nota, Riquadro, Titoletto, Vuoto } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
@@ -102,15 +103,17 @@ export default function Numeri() {
   const admin = profilo?.ruolo === 'amministratore';
   const { puo } = usePermessi();
   const [nuovo, setNuovo] = useState(false);
+  const [cerca, setCerca] = useState('');
 
   const leggi = useCallback(() => supabase.from('numeri_utili').select('*').order('nome').returns<NumeroUtile[]>(), []);
   const { dati, errore, ricarica, aggiorna, aggiornamento } = useDati(leggi);
 
   // Raggruppati per categoria, nell'ordine dell'elenco CATEGORIE (Emergenze per prime)
-  const gruppi = CATEGORIE.map((c) => ({ ...c, numeri: (dati ?? []).filter((n) => n.categoria === c.nome) })).filter(
+  const trovati = (dati ?? []).filter((n) => corrisponde(cerca, n.nome, n.categoria, n.telefono, n.email, n.note));
+  const gruppi = CATEGORIE.map((c) => ({ ...c, numeri: trovati.filter((n) => n.categoria === c.nome) })).filter(
     (g) => g.numeri.length,
   );
-  const altre = (dati ?? []).filter((n) => !CATEGORIE.some((c) => c.nome === n.categoria));
+  const altre = trovati.filter((n) => !CATEGORIE.some((c) => c.nome === n.categoria));
 
   async function elimina(n: NumeroUtile) {
     await supabase.from('numeri_utili').delete().eq('id', n.id);
@@ -166,6 +169,7 @@ export default function Numeri() {
           }}
         />
       )}
+      <CampoRicerca valore={cerca} onCambia={setCerca} segnaposto="Cerca (es. idraulico, ascensore)" />
       <Errore testo={errore} />
       {dati === null && !errore && <ActivityIndicator style={styles.caricamento} />}
       {dati?.length === 0 && !nuovo && (

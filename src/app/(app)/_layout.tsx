@@ -14,6 +14,7 @@ export default function LayoutApp() {
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: tema.colors.background } }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="profilo" />
+      <Stack.Screen name="cerca" />
       <Stack.Screen name="avvisi/index" />
       <Stack.Screen name="guasti/index" />
       <Stack.Screen name="guasti/nuovo" />

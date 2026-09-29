@@ -9,6 +9,7 @@ import { ActivityIndicator, Button, Chip, Text, TextInput } from 'react-native-p
 import { BottoneConferma } from '@/components/BottoneConferma';
 import { DataCalendario } from '@/components/DataCalendario';
 import { CampoData } from '@/components/CampoData';
+import { CampoRicerca, corrisponde } from '@/components/CampoRicerca';
 import { Pagina } from '@/components/Pagina';
 import { BottoneNuovo, Errore, Etichetta, Nota, Riquadro, Titoletto, Vuoto } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
@@ -129,6 +130,7 @@ export default function Scadenze() {
   const admin = profilo?.ruolo === 'amministratore';
   const { puo } = usePermessi();
   const [nuova, setNuova] = useState(false);
+  const [cerca, setCerca] = useState('');
 
   const leggi = useCallback(async () => {
     const [s, l] = await Promise.all([
@@ -158,9 +160,10 @@ export default function Scadenze() {
 
   const oggi = oggiIso();
   const tra30 = aggiungiGiorni(oggi, 30);
-  const scadute = (dati ?? []).filter((v) => v.data < oggi);
-  const vicine = (dati ?? []).filter((v) => v.data >= oggi && v.data <= tra30);
-  const lontane = (dati ?? []).filter((v) => v.data > tra30);
+  const trovate = (dati ?? []).filter((v) => corrisponde(cerca, v.titolo, v.categoria, v.note));
+  const scadute = trovate.filter((v) => v.data < oggi);
+  const vicine = trovate.filter((v) => v.data >= oggi && v.data <= tra30);
+  const lontane = trovate.filter((v) => v.data > tra30);
 
   async function fatto(v: Voce) {
     const r = RIPETIZIONI.find((x) => x.valore === v.ripetizione);
@@ -231,6 +234,7 @@ export default function Scadenze() {
           }}
         />
       )}
+      <CampoRicerca valore={cerca} onCambia={setCerca} segnaposto="Cerca nelle scadenze" />
       <Errore testo={errore} />
       {dati === null && !errore && <ActivityIndicator style={styles.caricamento} />}
       {dati?.length === 0 && !nuova && (

@@ -8,6 +8,7 @@ import { ActivityIndicator, Button, Text } from 'react-native-paper';
 
 import { Allegati } from '@/components/Allegati';
 import { BottoneConferma } from '@/components/BottoneConferma';
+import { CampoRicerca, corrisponde } from '@/components/CampoRicerca';
 import { Pagina } from '@/components/Pagina';
 import { BottoneNuovo, Errore, Etichetta, Nota, Riquadro, Vuoto } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
@@ -26,6 +27,7 @@ export default function Avvisi() {
   // Letta una volta sola all'apertura: così i "Nuovo" restano visibili finché si è nella pagina
   const [visitaPrecedente] = useState(() => (profilo ? ultimaVisita(profilo.id) : null));
   const [erroreAzione, setErroreAzione] = useState('');
+  const [cerca, setCerca] = useState('');
 
   const leggi = useCallback(async () => {
     const risultato = await supabase
@@ -39,7 +41,10 @@ export default function Avvisi() {
   const { dati, errore, ricarica, aggiorna, aggiornamento } = useDati(leggi);
 
   // In evidenza prima, poi dal più recente
-  const ordinati = dati ? [...dati].sort((a, b) => Number(!!b.in_evidenza) - Number(!!a.in_evidenza)) : null;
+  const ordinati = dati
+    ? [...dati]
+        .filter((a) => corrisponde(cerca, a.titolo, a.testo, ...a.avvisi_allegati.map((f) => f.nome_file)))
+        .sort((a, b) => Number(!!b.in_evidenza) - Number(!!a.in_evidenza)) : null;
 
   async function elimina(a: Avviso) {
     await eliminaFile('avvisi', a.avvisi_allegati.map((f) => f.percorso));
@@ -69,6 +74,7 @@ export default function Avvisi() {
       aggiornamento={aggiornamento}
       fisso={admin && <BottoneNuovo etichetta="Nuovo avviso" onPress={() => router.push('/avvisi/nuovo')} />}
     >
+      <CampoRicerca valore={cerca} onCambia={setCerca} segnaposto="Cerca negli avvisi" />
       <Errore testo={errore || erroreAzione} />
       {dati === null && !errore && <ActivityIndicator style={styles.caricamento} />}
       {dati?.length === 0 && (

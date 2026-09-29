@@ -192,6 +192,18 @@ export default function Home() {
         </Pressable>
       </View>
 
+      {/* Ricerca generale */}
+      <Pressable
+        onPress={() => router.push('/cerca')}
+        style={[styles.cerca, { backgroundColor: tema.colors.surface, borderColor: tema.colors.outlineVariant }]}
+        accessibilityLabel="Cerca in tutta l'app"
+      >
+        <Icon source="magnify" size={20} color={tema.colors.onSurfaceVariant} />
+        <Text variant="bodyMedium" style={{ color: tema.colors.onSurfaceVariant }}>
+          Cerca in avvisi, assemblee, lavori, documenti...
+        </Text>
+      </Pressable>
+
       {/* Avvisi in evidenza (li sceglie l'amministratore dalla bacheca) */}
       {dati?.inEvidenza.map((a) => (
         <Riquadro
@@ -444,6 +456,7 @@ const styles = StyleSheet.create({
   tessera: { flexBasis: '46%', flexGrow: 1, gap: 14 },
   sotto: { flexDirection: 'row', marginTop: 6 },
   elenco: { padding: 0, gap: 0 },
+  cerca: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderRadius: 999, paddingHorizontal: 16, paddingVertical: 12 },
   voce: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12 },
   premuto: { opacity: 0.7 },
   maiuscolo: { textTransform: 'uppercase', letterSpacing: 0.8 },

@@ -49,7 +49,7 @@ export default function DettaglioSondaggio() {
 
   const leggi = useCallback(async () => {
     const [s, v, r, p, vt] = await Promise.all([
-      supabase.from('sondaggi').select('*, sondaggi_opzioni(*)').eq('id', id).single<Sondaggio>(),
+      supabase.from('sondaggi').select('*, sondaggi_opzioni!sondaggi_opzioni_sondaggio_id_fkey(*)').eq('id', id).single<Sondaggio>(),
       supabase.from('voti').select('opzione_id').eq('sondaggio_id', id).eq('utente_id', profilo?.id ?? ''),
       supabase.rpc('risultati_sondaggio', { p_sondaggio: id }),
       supabase.from('profili').select('millesimi').eq('approvato', true),

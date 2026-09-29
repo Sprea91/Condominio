@@ -298,7 +298,7 @@ export default function DettaglioGuasto() {
   const leggi = useCallback(async () => {
     const { data, error } = await supabase
       .from('guasti')
-      .select('*, autore:profili(nome, appartamento), guasti_foto(id, percorso)')
+      .select('*, autore:profili!guasti_autore_id_fkey(nome, appartamento), guasti_foto(id, percorso)')
       .eq('id', id)
       .maybeSingle<Guasto>();
     if (!error && !data) return { data: null, error: { message: 'Guasto non trovato (forse è stato eliminato).' } };

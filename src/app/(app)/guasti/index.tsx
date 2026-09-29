@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Icon, SegmentedButtons, Text, useTheme } from 'react-native-paper';
 
+import { CampoRicerca, corrisponde } from '@/components/CampoRicerca';
 import { Pagina } from '@/components/Pagina';
 import { BottoneNuovo, Errore, Etichetta, IconaTonda, Nota, Riquadro, Vuoto } from '@/components/ui';
 import { autore, data } from '@/lib/formato';
@@ -19,12 +20,13 @@ export default function Guasti() {
   const tema = useTheme();
   const tinte = useTinte();
   const [filtro, setFiltro] = useState<Filtro>('attivi');
+  const [cerca, setCerca] = useState('');
 
   const leggi = useCallback(
     () =>
       supabase
         .from('guasti')
-        .select('*, autore:profili(nome, appartamento), guasti_foto(id, percorso)')
+        .select('*, autore:profili!guasti_autore_id_fkey(nome, appartamento), guasti_foto(id, percorso)')
         .order('creato_il', { ascending: false })
         .returns<Guasto[]>(),
     [],
@@ -32,7 +34,7 @@ export default function Guasti() {
   const { dati, errore, aggiorna, aggiornamento } = useDati(leggi);
 
   const attivi = dati?.filter((g) => g.stato !== 'chiuso').length ?? 0;
-  const visibili = dati?.filter((g) =>
+  const visibili = dati?.filter((g) => corrisponde(cerca, g.titolo, g.descrizione, g.nota_admin, g.autore?.nome)).filter((g) =>
     filtro === 'tutti' ? true : filtro === 'chiusi' ? g.stato === 'chiuso' : g.stato !== 'chiuso',
   );
 
@@ -53,6 +55,7 @@ export default function Guasti() {
           { value: 'tutti', label: 'Tutti' },
         ]}
       />
+      <CampoRicerca valore={cerca} onCambia={setCerca} segnaposto="Cerca nei guasti" />
       <Errore testo={errore} />
       {dati === null && !errore && <ActivityIndicator style={styles.caricamento} />}
       {visibili?.length === 0 && (
