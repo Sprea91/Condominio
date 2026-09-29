@@ -42,6 +42,7 @@ const ALTRE: { titolo: string; dettaglio: string; icona: string; tinta: NomeTint
   { titolo: 'Le mie rate', dettaglio: 'Quanto devo, cosa ho pagato, IBAN', icona: 'cash-multiple', tinta: 'viola', link: '/rate' },
   { titolo: 'Scadenze', dettaglio: 'Revisioni, polizze, manutenzioni', icona: 'calendar-alert', tinta: 'rosso', link: '/scadenze' },
   { titolo: 'Documenti', dettaglio: 'Regolamento, polizze, contratti', icona: 'folder-outline', tinta: 'blu', link: '/documenti' },
+  { titolo: 'Preventivi', dettaglio: 'Offerte delle ditte a confronto', icona: 'file-compare', tinta: 'blu', link: '/preventivi' },
   { titolo: 'Storico lavori', dettaglio: 'Interventi, fatture e garanzie', icona: 'hammer-wrench', tinta: 'arancio', link: '/lavori' },
   { titolo: 'Guida', dettaglio: 'Come installare e usare l’app', icona: 'help-circle-outline', tinta: 'grigio', link: '/guida' },
   { titolo: 'Numeri utili', dettaglio: 'Idraulico, elettricista, emergenze', icona: 'phone-outline', tinta: 'verde', link: '/numeri' },

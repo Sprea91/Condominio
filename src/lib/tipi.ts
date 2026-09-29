@@ -228,3 +228,32 @@ export type Scadenza = {
   note: string | null;
   autore_id?: string | null;
 };
+
+export type StatoPreventivo = 'in_valutazione' | 'accettato' | 'scartato';
+
+export type Preventivo = {
+  id: string;
+  richiesta_id: string;
+  ditta: string;
+  importo: number | null;
+  data_preventivo: string | null;
+  valido_fino: string | null;
+  descrizione: string | null;
+  stato: StatoPreventivo;
+  file_path: string | null;
+  file_nome: string | null;
+  autore_id: string | null;
+  creato_il: string;
+};
+
+export type RichiestaPreventivi = {
+  id: string;
+  titolo: string;
+  descrizione: string | null;
+  chiusa: boolean;
+  sondaggio_id: string | null;
+  autore_id: string | null;
+  creato_il: string;
+  autore?: Autore;
+  preventivi: Preventivo[];
+};

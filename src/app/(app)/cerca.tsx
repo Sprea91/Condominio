@@ -43,7 +43,7 @@ export default function Cerca() {
       const { data: righe, error } = await supabase.from(tabella).select(colonne);
       return error ? [] : ((righe ?? []) as unknown as Riga[]);
     };
-    const [avvisi, assemblee, sondaggi, guasti, lavori, documenti, scadenze, numeri, movimenti] = await Promise.all([
+    const [avvisi, assemblee, sondaggi, guasti, lavori, documenti, scadenze, numeri, movimenti, richieste] = await Promise.all([
       leggiTabella('avvisi', 'id, titolo, testo, creato_il, avvisi_allegati(nome_file)'),
       leggiTabella('assemblee', '*, assemblee_allegati(nome_file)'),
       leggiTabella('sondaggi', 'id, domanda, descrizione, creato_il, sondaggi_opzioni!sondaggi_opzioni_sondaggio_id_fkey(*)'),
@@ -53,6 +53,7 @@ export default function Cerca() {
       leggiTabella('scadenze', 'id, titolo, categoria, note, data'),
       leggiTabella('numeri_utili', 'id, nome, categoria, telefono, email, note'),
       leggiTabella('movimenti', 'id, descrizione, categoria, tipo, importo, data'),
+      leggiTabella('preventivi_richieste', 'id, titolo, descrizione, creato_il, preventivi(ditta, descrizione)'),
     ]);
     const nomi = (v: unknown, campo: string) =>
       Array.isArray(v) ? (v as Riga[]).map((x) => `${t(x[campo])} ${t(x.ditta)}`).join(' ') : '';
@@ -137,6 +138,16 @@ export default function Cerca() {
         dettaglio: `${t(x.categoria)}${x.telefono ? ` · ${t(x.telefono)}` : ''}`,
         testo: `${t(x.nome)} ${t(x.categoria)} ${t(x.telefono)} ${t(x.email)} ${t(x.note)}`,
         link: '/numeri' as Href,
+      })),
+      ...richieste.map((x) => ({
+        chiave: `richiesta-${t(x.id)}`,
+        sezione: 'Preventivi',
+        icona: 'file-compare',
+        tinta: 'blu' as NomeTinta,
+        titolo: t(x.titolo),
+        dettaglio: giorno(x.creato_il),
+        testo: `${t(x.titolo)} ${t(x.descrizione)} ${nomi(x.preventivi, 'descrizione')}`,
+        link: `/preventivi/${t(x.id)}` as Href,
       })),
       ...movimenti.map((x) => ({
         chiave: `movimento-${t(x.id)}`,

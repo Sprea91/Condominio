@@ -1,5 +1,5 @@
 // Nuovo lavoro nello storico (solo amministratore): cosa, quando, ditta, costo, garanzia, fatture.
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button, SegmentedButtons, Text, TextInput } from 'react-native-paper';
@@ -15,14 +15,16 @@ import { supabase } from '@/lib/supabase';
 import type { StatoLavoro } from '@/lib/tipi';
 
 export default function NuovoLavoro() {
-  const [titolo, setTitolo] = useState('');
-  const [descrizione, setDescrizione] = useState('');
+  // Se si arriva da un preventivo accettato, i dati sono già compilati
+  const da = useLocalSearchParams<{ titolo?: string; ditta?: string; importo?: string; descrizione?: string }>();
+  const [titolo, setTitolo] = useState(da.titolo ?? '');
+  const [descrizione, setDescrizione] = useState(da.descrizione ?? '');
   const [giorno, setGiorno] = useState(oggi());
-  const [ditta, setDitta] = useState('');
-  const [importo, setImporto] = useState('');
+  const [ditta, setDitta] = useState(da.ditta ?? '');
+  const [importo, setImporto] = useState(da.importo ?? '');
   const [garanzia, setGaranzia] = useState('');
   const [fatture, setFatture] = useState<FileScelto[]>([]);
-  const [stato, setStato] = useState<StatoLavoro>('finito');
+  const [stato, setStato] = useState<StatoLavoro>(da.titolo ? 'programmato' : 'finito');
   const [inCorso, setInCorso] = useState(false);
   const [errore, setErrore] = useState('');
 

@@ -305,7 +305,7 @@ export default function Rate() {
                 <IconaTonda icona="bank-outline" tinta={tinte.blu} dimensione={40} />
                 <View style={styles.flex}>
                   <Nota>Paga con bonifico a{dati.intestatario ? ` ${dati.intestatario}` : ''}</Nota>
-                  <Text variant="titleSmall" selectable>
+                  <Text variant="labelLarge" style={styles.iban} numberOfLines={1} selectable>
                     {dati.iban ? dati.iban.replace(/(.{4})/g, '$1 ').trim() : 'IBAN non ancora inserito'}
                   </Text>
                 </View>
@@ -411,6 +411,8 @@ const styles = StyleSheet.create({
   flex: { flex: 1, gap: 2 },
   azioni: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
   barra: { height: 8, borderRadius: 4, overflow: 'hidden' },
+  // carattere più piccolo: l'IBAN (27 caratteri) deve stare su una riga anche sul telefono
+  iban: { fontSize: 12.5, letterSpacing: 0 },
   causale: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 12, padding: 10 },
   riempimento: { height: '100%', borderRadius: 4 },
 });

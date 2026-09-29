@@ -7,13 +7,14 @@ import { useAuth } from './auth';
 import { supabase } from './supabase';
 import { useDati } from './useDati';
 
-export type Azione = 'guasti_stato' | 'numeri' | 'documenti' | 'lavori' | 'scadenze';
+export type Azione = 'guasti_stato' | 'numeri' | 'documenti' | 'lavori' | 'scadenze' | 'preventivi';
 
 export const AZIONI: { azione: Azione; titolo: string; descrizione: string }[] = [
   { azione: 'guasti_stato', titolo: 'Stato dei guasti', descrizione: 'Segnare un guasto in lavorazione o risolto e scrivere la nota' },
   { azione: 'numeri', titolo: 'Numeri utili', descrizione: 'Aggiungere e modificare i numeri utili' },
   { azione: 'documenti', titolo: 'Documenti', descrizione: 'Caricare documenti nell’archivio' },
   { azione: 'lavori', titolo: 'Storico lavori', descrizione: 'Registrare lavori, cambiarne lo stato, allegare fatture' },
+  { azione: 'preventivi', titolo: 'Preventivi', descrizione: 'Aggiungere richieste e preventivi, cambiarne lo stato' },
   { azione: 'scadenze', titolo: 'Scadenze', descrizione: 'Aggiungere scadenze e segnarle come fatte' },
 ];
 

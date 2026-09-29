@@ -210,8 +210,8 @@ export default function Guida() {
           Il saldo, le entrate e le uscite con le fatture, la tua quota in base ai millesimi e il rendiconto scaricabile in Excel
           o PDF.
         </Sezione>
-        <Sezione icona="folder-outline" titolo="Documenti, Storico lavori, Scadenze, Numeri utili">
-          Regolamento e polizze; i lavori fatti con fatture e garanzie; le scadenze da ricordare; i numeri dell’idraulico,
+        <Sezione icona="folder-outline" titolo="Documenti, Preventivi, Storico lavori, Scadenze, Numeri utili">
+          Regolamento e polizze; i preventivi delle ditte a confronto (chiunque può aggiungerne); i lavori fatti con fatture e garanzie; le scadenze da ricordare; i numeri dell’idraulico,
           dell’elettricista e delle emergenze (un tocco e parte la chiamata).
         </Sezione>
         <Sezione icona="account-circle-outline" titolo="Il mio profilo">
