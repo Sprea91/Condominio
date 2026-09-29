@@ -1,16 +1,27 @@
-// Schermata provvisoria: serve solo a verificare che l'app si apra su Expo Go.
-import { StyleSheet, View } from 'react-native';
-import { Text } from 'react-native-paper';
+// Home provvisoria per gli utenti approvati: qui arriveranno le sezioni dell'app.
+import { Button, Card, Text } from 'react-native-paper';
+
+import { Pagina } from '@/components/Pagina';
+import { useAuth } from '@/lib/auth';
 
 export default function Home() {
+  const { profilo, esci } = useAuth();
+  const admin = profilo?.ruolo === 'amministratore';
+
   return (
-    <View style={styles.container}>
+    <Pagina>
       <Text variant="headlineMedium">Condominio</Text>
-      <Text variant="bodyMedium">L'app funziona!</Text>
-    </View>
+      <Card>
+        <Card.Title title={profilo?.nome ?? profilo?.email} subtitle={admin ? 'Amministratore' : 'Condòmino'} />
+        <Card.Content>
+          <Text variant="bodyMedium">Appartamento: {profilo?.appartamento ?? 'non assegnato'}</Text>
+          <Text variant="bodyMedium">Millesimi: {profilo?.millesimi}</Text>
+        </Card.Content>
+      </Card>
+      <Text variant="bodyMedium">Le sezioni (avvisi, guasti, sondaggi, spese) arriveranno qui.</Text>
+      <Button mode="outlined" onPress={esci}>
+        Esci
+      </Button>
+    </Pagina>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 },
-});
