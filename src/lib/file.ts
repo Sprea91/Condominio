@@ -5,7 +5,7 @@ import { Linking } from 'react-native';
 
 import { supabase } from './supabase';
 
-export type Bucket = 'avvisi' | 'guasti' | 'giustificativi' | 'assemblee';
+export type Bucket = 'avvisi' | 'guasti' | 'giustificativi' | 'assemblee' | 'documenti';
 
 export type FileScelto = {
   uri: string;
@@ -25,6 +25,12 @@ export const TIPI_ASSEMBLEA = [
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'text/plain',
 ];
+// Archivio documenti e lavori: anche fogli Excel
+export const TIPI_DOCUMENTO = [
+  ...TIPI_ASSEMBLEA,
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+];
 
 // Il browser a volte non riconosce il tipo di file (succede con .eml e .msg): lo si deduce dall'estensione
 const TIPO_DA_ESTENSIONE: Record<string, string> = {
@@ -38,6 +44,8 @@ const TIPO_DA_ESTENSIONE: Record<string, string> = {
   doc: 'application/msword',
   docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   txt: 'text/plain',
+  xls: 'application/vnd.ms-excel',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 };
 
 function tipoFile(nome: string, tipoDichiarato?: string | null) {

@@ -11,6 +11,7 @@ import { Etichetta, IconaTonda, Nota, Riquadro, Titoletto } from '@/components/u
 import { useAuth } from '@/lib/auth';
 import { dataOra, euro, millesimi, ora, traQuanto } from '@/lib/formato';
 import { ultimaVisita } from '@/lib/letti';
+import type { NomeTinta } from '@/lib/guasti';
 import { RISPOSTE } from '@/lib/presenze';
 import { aperto } from '@/lib/sondaggi';
 import { supabase } from '@/lib/supabase';
@@ -31,6 +32,12 @@ type Riepilogo = {
   prossimaAssemblea: { id: string; titolo: string; data_ora: string; luogo: string | null } | null;
   miaRisposta: RispostaPresenza | null;
 };
+
+const ALTRE: { titolo: string; dettaglio: string; icona: string; tinta: NomeTinta; link: Href }[] = [
+  { titolo: 'Documenti', dettaglio: 'Regolamento, polizze, contratti', icona: 'folder-outline', tinta: 'blu', link: '/documenti' },
+  { titolo: 'Storico lavori', dettaglio: 'Interventi, fatture e garanzie', icona: 'hammer-wrench', tinta: 'arancio', link: '/lavori' },
+  { titolo: 'Numeri utili', dettaglio: 'Idraulico, elettricista, emergenze', icona: 'phone-outline', tinta: 'verde', link: '/numeri' },
+];
 
 function saluto() {
   const ora = new Date().getHours();
@@ -261,6 +268,29 @@ export default function Home() {
         </>
       )}
 
+      {/* Altre sezioni */}
+      <Titoletto>Il condominio</Titoletto>
+      <Riquadro style={styles.elenco}>
+        {ALTRE.map((v, i) => (
+          <Pressable
+            key={v.titolo}
+            onPress={() => router.push(v.link)}
+            style={({ pressed }) => [
+              styles.voce,
+              i > 0 && { borderTopWidth: 1, borderTopColor: tema.colors.outlineVariant },
+              pressed && styles.premuto,
+            ]}
+          >
+            <IconaTonda icona={v.icona} tinta={tinte[v.tinta]} dimensione={36} />
+            <View style={styles.flex}>
+              <Text variant="titleSmall">{v.titolo}</Text>
+              <Nota>{v.dettaglio}</Nota>
+            </View>
+            <Icon source="chevron-right" size={20} color={tema.colors.onSurfaceVariant} />
+          </Pressable>
+        ))}
+      </Riquadro>
+
       {admin && (
         <>
           <Titoletto>Amministrazione</Titoletto>
@@ -285,6 +315,9 @@ const styles = StyleSheet.create({
   griglia: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   tessera: { flexBasis: '46%', flexGrow: 1, gap: 14 },
   sotto: { flexDirection: 'row', marginTop: 6 },
+  elenco: { padding: 0, gap: 0 },
+  voce: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12 },
+  premuto: { opacity: 0.7 },
   maiuscolo: { textTransform: 'uppercase', letterSpacing: 0.8 },
   rigaTessera: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
 });

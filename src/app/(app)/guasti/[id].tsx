@@ -3,7 +3,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Button, Icon, SegmentedButtons, Text, TextInput, useTheme } from 'react-native-paper';
+import { ActivityIndicator, Avatar, Button, Icon, IconButton, SegmentedButtons, Text, TextInput, useTheme } from 'react-native-paper';
 
 import { Allegati } from '@/components/Allegati';
 import { BottoneConferma } from '@/components/BottoneConferma';
@@ -16,7 +16,7 @@ import { autore, dataOra } from '@/lib/formato';
 import { STATI, stato } from '@/lib/guasti';
 import { supabase } from '@/lib/supabase';
 import { useTinte } from '@/lib/tema';
-import type { Guasto, StatoGuasto } from '@/lib/tipi';
+import type { Commento, Guasto, StatoGuasto } from '@/lib/tipi';
 import { useDati } from '@/lib/useDati';
 
 // Tre pallini collegati: Aperto -> In lavorazione -> Risolto
@@ -148,6 +148,102 @@ function AggiungiFoto({ guasto, onAggiunte }: { guasto: Guasto; onAggiunte: () =
   );
 }
 
+// Commenti dei condòmini (es. "anche da me l'acqua è fredda")
+function Commenti({ guasto }: { guasto: Guasto }) {
+  const { profilo } = useAuth();
+  const tema = useTheme();
+  const admin = profilo?.ruolo === 'amministratore';
+  const [testo, setTesto] = useState('');
+  const [inCorso, setInCorso] = useState(false);
+  const [errore, setErrore] = useState('');
+
+  const leggi = useCallback(
+    () =>
+      supabase
+        .from('guasti_commenti')
+        .select('*, autore:profili(nome, appartamento)')
+        .eq('guasto_id', guasto.id)
+        .order('creato_il', { ascending: true })
+        .returns<Commento[]>(),
+    [guasto.id],
+  );
+  const { dati, errore: erroreLettura, ricarica } = useDati(leggi);
+
+  async function invia() {
+    if (!testo.trim()) return;
+    setErrore('');
+    setInCorso(true);
+    const { error } = await supabase.from('guasti_commenti').insert({ guasto_id: guasto.id, testo: testo.trim() });
+    setInCorso(false);
+    if (error) {
+      setErrore(`Errore: ${error.message}`);
+      return;
+    }
+    setTesto('');
+    ricarica();
+  }
+
+  async function elimina(c: Commento) {
+    await supabase.from('guasti_commenti').delete().eq('id', c.id);
+    ricarica();
+  }
+
+  // Tabella non ancora creata (supabase/06-...sql): la sezione non si mostra
+  if (erroreLettura) return null;
+
+  return (
+    <>
+      <Titoletto>Commenti{dati?.length ? ` (${dati.length})` : ''}</Titoletto>
+      <Riquadro>
+        {dati?.length === 0 && <Nota>Nessun commento. Hai lo stesso problema? Scrivilo qui.</Nota>}
+        {dati?.map((c) => {
+          const mio = c.autore_id === profilo?.id;
+          return (
+            <View key={c.id} style={styles.commento}>
+              <Avatar.Text size={32} label={(c.autore?.nome ?? '?').slice(0, 1).toUpperCase()} />
+              <View style={[styles.fumetto, { backgroundColor: mio ? tema.colors.primaryContainer : tema.colors.surfaceVariant }]}>
+                <View style={styles.testaCommento}>
+                  <Text variant="labelLarge" style={styles.flex}>
+                    {autore(c.autore)}
+                  </Text>
+                  <Nota>{dataOra(c.creato_il)}</Nota>
+                </View>
+                <Text variant="bodyMedium">{c.testo}</Text>
+                {(mio || admin) && (
+                  <View style={styles.azioni}>
+                    <BottoneConferma etichetta="" conferma="Elimina" onConferma={() => elimina(c)} />
+                  </View>
+                )}
+              </View>
+            </View>
+          );
+        })}
+        <View style={styles.scrivi}>
+          <TextInput
+            style={styles.flex}
+            mode="outlined"
+            dense
+            placeholder="Scrivi un commento..."
+            value={testo}
+            onChangeText={setTesto}
+            multiline
+          />
+          <IconButton
+            icon="send"
+            mode="contained"
+            containerColor={tema.colors.primary}
+            iconColor={tema.colors.onPrimary}
+            onPress={invia}
+            disabled={inCorso || !testo.trim()}
+            accessibilityLabel="Invia commento"
+          />
+        </View>
+        <Errore testo={errore} />
+      </Riquadro>
+    </>
+  );
+}
+
 export default function DettaglioGuasto() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { profilo } = useAuth();
@@ -219,6 +315,8 @@ export default function DettaglioGuasto() {
         </Riquadro>
       )}
 
+      <Commenti guasto={g} />
+
       {admin && <GestioneAdmin key={g.aggiornato_il} guasto={g} onSalvato={ricarica} />}
     </Pagina>
   );
@@ -236,4 +334,9 @@ const styles = StyleSheet.create({
   testo: { lineHeight: 24 },
   azioni: { flexDirection: 'row', justifyContent: 'flex-end', flexWrap: 'wrap', gap: 4 },
   aggiungi: { gap: 8 },
+  commento: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
+  fumetto: { flex: 1, borderRadius: 14, padding: 10, gap: 4 },
+  testaCommento: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  scrivi: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  flex: { flex: 1 },
 });

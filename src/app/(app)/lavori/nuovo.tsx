@@ -1,0 +1,139 @@
+// Nuovo lavoro nello storico (solo amministratore): cosa, quando, ditta, costo, garanzia, fatture.
+import { router } from 'expo-router';
+import { useState } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { Button, Text, TextInput } from 'react-native-paper';
+
+import { Pagina } from '@/components/Pagina';
+import { SceltaFile } from '@/components/SceltaFile';
+import { Errore, Nota, Riquadro } from '@/components/ui';
+import { caricaFile, TIPI_DOCUMENTO, type FileScelto } from '@/lib/file';
+import { leggiData, leggiNumero, oggi } from '@/lib/formato';
+import { supabase } from '@/lib/supabase';
+
+export default function NuovoLavoro() {
+  const [titolo, setTitolo] = useState('');
+  const [descrizione, setDescrizione] = useState('');
+  const [giorno, setGiorno] = useState(oggi());
+  const [ditta, setDitta] = useState('');
+  const [importo, setImporto] = useState('');
+  const [garanzia, setGaranzia] = useState('');
+  const [fatture, setFatture] = useState<FileScelto[]>([]);
+  const [inCorso, setInCorso] = useState(false);
+  const [errore, setErrore] = useState('');
+
+  async function salva() {
+    setErrore('');
+    const dataDb = leggiData(giorno);
+    const garanziaDb = garanzia.trim() ? leggiData(garanzia) : null;
+    const valore = importo.trim() ? leggiNumero(importo) : null;
+    if (!titolo.trim()) {
+      setErrore('Scrivi che lavoro è stato fatto.');
+      return;
+    }
+    if (!dataDb) {
+      setErrore('Data del lavoro non valida: usa gg/mm/aaaa.');
+      return;
+    }
+    if (garanzia.trim() && !garanziaDb) {
+      setErrore('Data di fine garanzia non valida: usa gg/mm/aaaa.');
+      return;
+    }
+    if (importo.trim() && valore === null) {
+      setErrore('Importo non valido (esempio: 1.250,00).');
+      return;
+    }
+    setInCorso(true);
+    try {
+      const { data: lavoro, error } = await supabase
+        .from('lavori')
+        .insert({
+          titolo: titolo.trim(),
+          descrizione: descrizione.trim() || null,
+          data_lavoro: dataDb,
+          ditta: ditta.trim() || null,
+          importo: valore,
+          garanzia_fino: garanziaDb,
+        })
+        .select('id')
+        .single();
+      if (error) throw new Error(error.message);
+      for (const f of fatture) {
+        const percorso = await caricaFile('documenti', `lavori/${lavoro.id}`, f);
+        const { error: e } = await supabase
+          .from('lavori_allegati')
+          .insert({ lavoro_id: lavoro.id, categoria: 'fattura', percorso, nome_file: f.nome, tipo_mime: f.tipo });
+        if (e) throw new Error(e.message);
+      }
+      router.replace(`/lavori/${lavoro.id}`);
+    } catch (e) {
+      setErrore(`Errore: ${(e as Error).message}`);
+    } finally {
+      setInCorso(false);
+    }
+  }
+
+  return (
+    <Pagina titolo="Nuovo lavoro" sottotitolo="Resterà nello storico del condominio">
+      <Riquadro>
+        <TextInput label="Lavoro (es. Rifacimento tetto)" mode="outlined" value={titolo} onChangeText={setTitolo} />
+        <TextInput
+          label="Descrizione (facoltativa)"
+          mode="outlined"
+          value={descrizione}
+          onChangeText={setDescrizione}
+          multiline
+          numberOfLines={4}
+        />
+        <View style={styles.riga}>
+          <TextInput
+            style={styles.flex}
+            label="Data (gg/mm/aaaa)"
+            mode="outlined"
+            value={giorno}
+            onChangeText={setGiorno}
+            keyboardType="numbers-and-punctuation"
+          />
+          <TextInput
+            style={styles.flex}
+            label="Costo in €"
+            mode="outlined"
+            value={importo}
+            onChangeText={setImporto}
+            keyboardType="decimal-pad"
+          />
+        </View>
+        <TextInput
+          label="Ditta"
+          mode="outlined"
+          value={ditta}
+          onChangeText={setDitta}
+          left={<TextInput.Icon icon="domain" />}
+        />
+        <TextInput
+          label="Garanzia fino al (gg/mm/aaaa, facoltativo)"
+          mode="outlined"
+          value={garanzia}
+          onChangeText={setGaranzia}
+          keyboardType="numbers-and-punctuation"
+          left={<TextInput.Icon icon="shield-check-outline" />}
+        />
+      </Riquadro>
+      <Riquadro>
+        <Text variant="titleSmall">Fatture</Text>
+        <Nota>Garanzie, foto e altri documenti potrai aggiungerli dopo dal dettaglio del lavoro.</Nota>
+        <SceltaFile file={fatture} onCambia={setFatture} tipi={TIPI_DOCUMENTO} etichetta="Allega fatture" />
+      </Riquadro>
+      <Errore testo={errore} />
+      <Button mode="contained" icon="check" onPress={salva} loading={inCorso} disabled={inCorso} contentStyle={styles.alto}>
+        Salva lavoro
+      </Button>
+    </Pagina>
+  );
+}
+
+const styles = StyleSheet.create({
+  riga: { flexDirection: 'row', gap: 8 },
+  flex: { flex: 1 },
+  alto: { height: 48 },
+});

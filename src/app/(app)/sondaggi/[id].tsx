@@ -8,9 +8,10 @@ import { ActivityIndicator, Button, Icon, Text, useTheme } from 'react-native-pa
 
 import { BottoneConferma } from '@/components/BottoneConferma';
 import { Pagina } from '@/components/Pagina';
-import { Errore, Etichetta, Nota, Riquadro, Titoletto } from '@/components/ui';
+import { Errore, Etichetta, IconaTonda, Nota, Riquadro, Titoletto } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
-import { dataOra, millesimi } from '@/lib/formato';
+import { apriFile } from '@/lib/file';
+import { dataOra, euro, millesimi } from '@/lib/formato';
 import { aperto } from '@/lib/sondaggi';
 import { supabase } from '@/lib/supabase';
 import { useTinte } from '@/lib/tema';
@@ -46,7 +47,7 @@ export default function DettaglioSondaggio() {
 
   const leggi = useCallback(async () => {
     const [s, v, r, p] = await Promise.all([
-      supabase.from('sondaggi').select('*, sondaggi_opzioni(id, testo, ordine)').eq('id', id).single<Sondaggio>(),
+      supabase.from('sondaggi').select('*, sondaggi_opzioni(*)').eq('id', id).single<Sondaggio>(),
       supabase.from('voti').select('opzione_id').eq('sondaggio_id', id).eq('utente_id', profilo?.id ?? '').maybeSingle(),
       supabase.rpc('risultati_sondaggio', { p_sondaggio: id }),
       supabase.from('profili').select('millesimi').eq('approvato', true),
@@ -84,6 +85,7 @@ export default function DettaglioSondaggio() {
   const perMillesimi = s.modalita === 'millesimi';
   const mostraVoto = votabile && (!mioVoto || cambio);
   const mostraRisultati = admin || !!mioVoto || !votabile;
+  const conPreventivi = s.sondaggi_opzioni.some((o) => o.importo != null || !!o.preventivo_path);
 
   const totaleTeste = risultati.reduce((t, x) => t + Number(x.voti_testa), 0);
   const totaleMillesimi = risultati.reduce((t, x) => t + Number(x.voti_millesimi), 0);
@@ -179,9 +181,15 @@ export default function DettaglioSondaggio() {
                   size={22}
                   color={scelto ? tema.colors.primary : tema.colors.onSurfaceVariant}
                 />
-                <Text variant="titleMedium" style={styles.flex}>
-                  {o.testo}
-                </Text>
+                <View style={styles.flex}>
+                  <Text variant="titleMedium">{o.testo}</Text>
+                  {o.importo != null && <Text variant="bodyMedium">{euro(o.importo)}</Text>}
+                </View>
+                {!!o.preventivo_path && (
+                  <Button compact icon="file-pdf-box" onPress={() => apriFile('documenti', o.preventivo_path!)}>
+                    Preventivo
+                  </Button>
+                )}
               </Pressable>
             );
           })}
@@ -192,6 +200,27 @@ export default function DettaglioSondaggio() {
               Conferma voto
             </Button>
           </View>
+        </>
+      )}
+
+      {/* Preventivi a confronto (visibili sempre, anche dopo il voto) */}
+      {conPreventivi && !mostraVoto && (
+        <>
+          <Titoletto>Preventivi</Titoletto>
+          {s.sondaggi_opzioni.map((o) => (
+            <Riquadro key={o.id} style={styles.riga}>
+              <IconaTonda icona="file-document-outline" tinta={tinte.blu} dimensione={40} />
+              <View style={styles.flex}>
+                <Text variant="titleMedium">{o.testo}</Text>
+                {o.importo != null && <Text variant="bodyLarge">{euro(o.importo)}</Text>}
+              </View>
+              {!!o.preventivo_path && (
+                <Button compact icon="open-in-new" onPress={() => apriFile('documenti', o.preventivo_path!)}>
+                  Apri
+                </Button>
+              )}
+            </Riquadro>
+          ))}
         </>
       )}
 

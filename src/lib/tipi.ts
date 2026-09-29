@@ -50,6 +50,17 @@ export type Guasto = {
 
 export type ModalitaVoto = 'testa' | 'millesimi';
 
+// Un'opzione può essere anche un preventivo (ditta, importo, file) — colonne di supabase/06-...sql
+export type OpzioneSondaggio = {
+  id: string;
+  testo: string;
+  ordine: number;
+  ditta?: string | null;
+  importo?: number | null;
+  preventivo_path?: string | null;
+  preventivo_nome?: string | null;
+};
+
 export type Sondaggio = {
   id: string;
   domanda: string;
@@ -58,7 +69,7 @@ export type Sondaggio = {
   scadenza: string | null;
   chiuso: boolean;
   creato_il: string;
-  sondaggi_opzioni: { id: string; testo: string; ordine: number }[];
+  sondaggi_opzioni: OpzioneSondaggio[];
 };
 
 export type RisultatoOpzione = {
@@ -117,4 +128,44 @@ export type Presenza = {
   risposta: RispostaPresenza;
   delegato: string | null;
   profilo?: { nome: string | null; appartamento: string | null } | null;
+};
+
+export type Documento = {
+  id: string;
+  titolo: string;
+  cartella: string;
+  percorso: string;
+  nome_file: string;
+  tipo_mime: string;
+  creato_il: string;
+};
+
+export type CategoriaAllegatoLavoro = 'fattura' | 'garanzia' | 'foto' | 'altro';
+
+export type Lavoro = {
+  id: string;
+  titolo: string;
+  descrizione: string | null;
+  data_lavoro: string;
+  ditta: string | null;
+  importo: number | null;
+  garanzia_fino: string | null;
+  lavori_allegati: { id: string; categoria: CategoriaAllegatoLavoro; percorso: string; nome_file: string; tipo_mime: string }[];
+};
+
+export type NumeroUtile = {
+  id: string;
+  nome: string;
+  categoria: string;
+  telefono: string | null;
+  email: string | null;
+  note: string | null;
+};
+
+export type Commento = {
+  id: string;
+  autore_id: string | null;
+  testo: string;
+  creato_il: string;
+  autore: Autore;
 };
