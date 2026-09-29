@@ -215,7 +215,7 @@ export default function Guida() {
         </Sezione>
         <Sezione icona="folder-outline" titolo="Documenti, Preventivi, Storico lavori, Scadenze, Numeri utili">
           Regolamento e polizze; i preventivi delle ditte a confronto (chiunque può aggiungerne); i lavori fatti con fatture e garanzie; le scadenze da ricordare; i numeri dell’idraulico,
-          dell’elettricista e delle emergenze (un tocco e parte la chiamata).
+          dell’elettricista e delle emergenze (un tocco e parte la chiamata; con la matita si correggono).
         </Sezione>
         <Sezione icona="domain" titolo="Ditte e fornitori">
           L’elenco delle ditte che hanno lavorato per il condominio, con contatti, lavori, preventivi, guasti seguiti e quanto

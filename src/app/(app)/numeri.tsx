@@ -30,12 +30,21 @@ const CATEGORIE: { nome: string; icona: string }[] = [
 
 const iconaCategoria = (c: string) => CATEGORIE.find((x) => x.nome === c)?.icona ?? 'phone-outline';
 
-function NuovoNumero({ onSalvato, onAnnulla }: { onSalvato: () => void; onAnnulla: () => void }) {
-  const [nome, setNome] = useState('');
-  const [categoria, setCategoria] = useState('Idraulico');
-  const [telefono, setTelefono] = useState('');
-  const [email, setEmail] = useState('');
-  const [note, setNote] = useState('');
+// Modulo per un numero nuovo o, con "iniziale", per modificarne uno esistente
+function NuovoNumero({
+  iniziale,
+  onSalvato,
+  onAnnulla,
+}: {
+  iniziale?: NumeroUtile;
+  onSalvato: () => void;
+  onAnnulla: () => void;
+}) {
+  const [nome, setNome] = useState(iniziale?.nome ?? '');
+  const [categoria, setCategoria] = useState(iniziale?.categoria ?? 'Idraulico');
+  const [telefono, setTelefono] = useState(iniziale?.telefono ?? '');
+  const [email, setEmail] = useState(iniziale?.email ?? '');
+  const [note, setNote] = useState(iniziale?.note ?? '');
   const [inCorso, setInCorso] = useState(false);
   const [errore, setErrore] = useState('');
 
@@ -46,13 +55,16 @@ function NuovoNumero({ onSalvato, onAnnulla }: { onSalvato: () => void; onAnnull
       return;
     }
     setInCorso(true);
-    const { error } = await supabase.from('numeri_utili').insert({
+    const campi = {
       nome: nome.trim(),
       categoria,
       telefono: telefono.trim() || null,
       email: email.trim() || null,
       note: note.trim() || null,
-    });
+    };
+    const { error } = iniziale
+      ? await supabase.from('numeri_utili').update(campi).eq('id', iniziale.id)
+      : await supabase.from('numeri_utili').insert(campi);
     setInCorso(false);
     if (error) setErrore(`Errore: ${error.message}`);
     else onSalvato();
@@ -60,7 +72,7 @@ function NuovoNumero({ onSalvato, onAnnulla }: { onSalvato: () => void; onAnnull
 
   return (
     <Riquadro evidenziato>
-      <Text variant="titleSmall">Nuovo numero</Text>
+      <Text variant="titleSmall">{iniziale ? 'Modifica numero' : 'Nuovo numero'}</Text>
       <View style={styles.chip}>
         {CATEGORIE.map((c) => (
           <Chip
@@ -104,6 +116,7 @@ export default function Numeri() {
   const admin = profilo?.ruolo === 'amministratore';
   const { puo } = usePermessi();
   const [nuovo, setNuovo] = useState(false);
+  const [inModifica, setInModifica] = useState<string | null>(null);
   const [cerca, setCerca] = useState('');
 
   const leggi = useCallback(() => supabase.from('numeri_utili').select('*').order('nome').returns<NumeroUtile[]>(), []);
@@ -122,6 +135,18 @@ export default function Numeri() {
   }
 
   function Numero({ n }: { n: NumeroUtile }) {
+    if (inModifica === n.id) {
+      return (
+        <NuovoNumero
+          iniziale={n}
+          onAnnulla={() => setInModifica(null)}
+          onSalvato={() => {
+            setInModifica(null);
+            ricarica();
+          }}
+        />
+      );
+    }
     return (
       <Riquadro style={styles.riga}>
         <IconaTonda icona={iconaCategoria(n.categoria)} tinta={n.categoria === 'Emergenze' ? tinte.rosso : tinte.blu} dimensione={40} />
@@ -147,6 +172,9 @@ export default function Numeri() {
             onPress={() => Linking.openURL(`tel:${n.telefono!.replace(/\s/g, '')}`)}
             accessibilityLabel={`Chiama ${n.nome}`}
           />
+        )}
+        {puo('numeri') && (
+          <IconButton icon="pencil-outline" onPress={() => setInModifica(n.id)} accessibilityLabel={`Modifica ${n.nome}`} />
         )}
         {(admin || n.autore_id === profilo?.id) && <BottoneConferma etichetta="" conferma="Elimina" onConferma={() => elimina(n)} />}
       </Riquadro>
