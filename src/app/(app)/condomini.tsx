@@ -1,10 +1,9 @@
 // Gestione condòmini (solo amministratore): approva le registrazioni,
 // assegna appartamento e millesimi, controlla che il totale faccia 1000.
 import { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { ActivityIndicator, Banner, Text } from 'react-native-paper';
 
-import { Intestazione } from '@/components/Intestazione';
 import { Pagina } from '@/components/Pagina';
 import { SchedaCondomino } from '@/components/SchedaCondomino';
 import { useAuth } from '@/lib/auth';
@@ -47,9 +46,7 @@ export default function Condomini() {
   const totaleOk = Math.abs(totaleMillesimi - 1000) < 0.001;
 
   return (
-    <View style={styles.fondo}>
-      <Intestazione titolo="Gestione condòmini" />
-      <Pagina>
+    <Pagina titolo="Gestione condòmini">
         {!!errore && <Text style={styles.errore}>{errore}</Text>}
         {profili === null && !errore && <ActivityIndicator />}
 
@@ -73,13 +70,11 @@ export default function Condomini() {
             ))}
           </>
         )}
-      </Pagina>
-    </View>
+    </Pagina>
   );
 }
 
 const styles = StyleSheet.create({
-  fondo: { flex: 1 },
   titolo: { marginTop: 16 },
   errore: { color: '#B3261E' },
 });

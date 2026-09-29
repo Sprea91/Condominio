@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button, Card, HelperText, SegmentedButtons, Text, TextInput } from 'react-native-paper';
 
+import { leggiNumero } from '@/lib/formato';
 import { supabase } from '@/lib/supabase';
 import type { Profilo, Ruolo } from '@/lib/tipi';
 
@@ -13,12 +14,6 @@ type Props = {
   sonoIo: boolean;
   onModificato: () => void;
 };
-
-// Accetta sia "95,5" sia "95.5"
-function leggiNumero(testo: string): number | null {
-  const n = Number(testo.trim().replace(',', '.'));
-  return testo.trim() !== '' && Number.isFinite(n) && n >= 0 ? n : null;
-}
 
 export function SchedaCondomino({ profilo, sonoIo, onModificato }: Props) {
   const inAttesa = !profilo.approvato;
