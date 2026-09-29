@@ -3,6 +3,7 @@
 //   - non collegato          -> accedi, registrati
 //   - collegato, in attesa   -> in-attesa
 //   - collegato e approvato  -> tutte le schermate dell'app
+//   - amministratore         -> in più le schermate di gestione
 import { Stack } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { ActivityIndicator, PaperProvider } from 'react-native-paper';
@@ -23,11 +24,16 @@ function Navigazione() {
 
   const collegato = !!session;
   const approvato = collegato && !!profilo?.approvato;
+  const admin = approvato && profilo?.ruolo === 'amministratore';
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Protected guard={approvato}>
         <Stack.Screen name="index" />
+      </Stack.Protected>
+
+      <Stack.Protected guard={admin}>
+        <Stack.Screen name="condomini" />
       </Stack.Protected>
 
       <Stack.Protected guard={collegato && !approvato}>

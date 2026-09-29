@@ -1,4 +1,5 @@
 // Home provvisoria per gli utenti approvati: qui arriveranno le sezioni dell'app.
+import { router } from 'expo-router';
 import { Button, Card, Text } from 'react-native-paper';
 
 import { Pagina } from '@/components/Pagina';
@@ -18,6 +19,11 @@ export default function Home() {
           <Text variant="bodyMedium">Millesimi: {profilo?.millesimi}</Text>
         </Card.Content>
       </Card>
+      {admin && (
+        <Button mode="contained" icon="account-group" onPress={() => router.push('/condomini')}>
+          Gestione condòmini
+        </Button>
+      )}
       <Text variant="bodyMedium">Le sezioni (avvisi, guasti, sondaggi, spese) arriveranno qui.</Text>
       <Button mode="outlined" onPress={esci}>
         Esci
