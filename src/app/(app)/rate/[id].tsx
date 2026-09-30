@@ -142,6 +142,99 @@ function ModificaRata({ emissione, rate, onFatto }: { emissione: EmissioneRate; 
   );
 }
 
+// Condòmini approvati senza una quota in questa rata (es. approvati dopo l'emissione): si possono aggiungere
+function CondominiMancanti({ emissione, rate, onAggiunto }: { emissione: EmissioneRate; rate: Rata[]; onAggiunto: () => void }) {
+  const tema = useTheme();
+  const leggi = useCallback(
+    () =>
+      supabase
+        .from('profili')
+        .select('id, nome, appartamento, millesimi')
+        .eq('approvato', true)
+        .returns<{ id: string; nome: string | null; appartamento: string | null; millesimi: number }[]>(),
+    [],
+  );
+  const { dati } = useDati(leggi);
+  const [importi, setImporti] = useState<Record<string, string>>({});
+  const [inCorso, setInCorso] = useState<string | null>(null);
+  const [errore, setErrore] = useState('');
+
+  const presenti = new Set(rate.map((r) => r.utente_id));
+  const mancanti = (dati ?? [])
+    .filter((p) => !presenti.has(p.id))
+    .sort((a, b) => (a.appartamento ?? '').localeCompare(b.appartamento ?? '', 'it', { numeric: true }));
+  if (!mancanti.length) return null;
+
+  // Importo proposto: quota sui millesimi del totale, oppure uguale alla quota media, oppure vuoto
+  const proposta = (m: number) => {
+    if (emissione.ripartizione === 'millesimi') return (Number(emissione.totale) * Number(m)) / 1000;
+    if (emissione.ripartizione === 'uguale' && rate.length) return Number(emissione.totale) / rate.length;
+    return null;
+  };
+  const valore = (id: string, m: number) =>
+    importi[id] ?? (proposta(m) !== null ? proposta(m)!.toFixed(2).replace('.', ',') : '');
+
+  async function aggiungi(p: { id: string; millesimi: number }) {
+    setErrore('');
+    const importo = leggiNumero(valore(p.id, p.millesimi));
+    if (importo === null) {
+      setErrore('Scrivi un importo valido (esempio: 120,50).');
+      return;
+    }
+    setInCorso(p.id);
+    try {
+      const { error } = await supabase
+        .from('rate')
+        .insert({ emissione_id: emissione.id, utente_id: p.id, importo: Math.round(importo * 100) / 100 });
+      if (error) throw new Error(error.message);
+      const nuovoTotale = Math.round((Number(emissione.totale) + importo) * 100) / 100;
+      const { error: e } = await supabase.from('rate_emissioni').update({ totale: nuovoTotale }).eq('id', emissione.id);
+      if (e) throw new Error(e.message);
+      onAggiunto();
+    } catch (err) {
+      setErrore(`Errore: ${(err as Error).message}`);
+    } finally {
+      setInCorso(null);
+    }
+  }
+
+  return (
+    <>
+      <Titoletto>{`Condòmini senza questa rata (${mancanti.length})`}</Titoletto>
+      <Riquadro>
+        <Nota>
+          Sono stati approvati dopo l’emissione della rata, oppure non avevano ancora i millesimi. Aggiungendoli, il totale
+          della rata aumenta.
+        </Nota>
+        {mancanti.map((p) => (
+          <View key={p.id} style={[styles.rigaImporto, { borderBottomColor: tema.colors.outlineVariant }]}>
+            <View style={styles.flex}>
+              <Text variant="bodyMedium">
+                {p.appartamento ? `App. ${p.appartamento} · ` : ''}
+                {p.nome ?? '—'}
+              </Text>
+              <Nota>{`${Number(p.millesimi).toLocaleString('it-IT')} millesimi`}</Nota>
+            </View>
+            <TextInput
+              style={styles.importo}
+              mode="outlined"
+              dense
+              value={valore(p.id, p.millesimi)}
+              onChangeText={(t) => setImporti({ ...importi, [p.id]: t })}
+              keyboardType="decimal-pad"
+              placeholder="0,00"
+            />
+            <Button compact mode="contained" onPress={() => aggiungi(p)} loading={inCorso === p.id} disabled={!!inCorso}>
+              Aggiungi
+            </Button>
+          </View>
+        ))}
+        <Errore testo={errore} />
+      </Riquadro>
+    </>
+  );
+}
+
 // Registro di tutto quello che è successo alle quote di questa rata (supabase/13-...sql)
 // idQuote: gli id delle quote separati da virgola (una stringa, così non cambia a ogni disegno dello schermo)
 function StoricoRata({ idQuote }: { idQuote: string }) {
@@ -421,6 +514,8 @@ export default function DettaglioRata() {
           })}
         </View>
       ))}
+
+      <CondominiMancanti emissione={e} rate={rate} onAggiunto={ricarica} />
 
       <StoricoRata key={rate.map((r) => `${r.id}${r.pagata_il}${r.segnalata_il}${r.importo}`).join('|')} idQuote={rate.map((r) => r.id).join(',')} />
 

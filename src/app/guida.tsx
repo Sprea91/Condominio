@@ -267,7 +267,7 @@ export default function Guida() {
               “Nuova rata”: totale, scadenza, divisione (millesimi, parti uguali, a mano) e causale del bonifico. Quando un
               condòmino segnala “Ho pagato” lo vedi nella Home: apri la rata, guarda la ricevuta e premi Conferma o Rifiuta.
               Con “Modifica rata” correggi titolo, scadenza e importi non ancora pagati; in fondo trovi chi ha pagato, chi no e
-              lo storico di tutto. L’IBAN si inserisce in “Le mie rate”.
+              lo storico di tutto. Chi è stato approvato dopo l’emissione compare in “Condòmini senza questa rata”: lo aggiungi con un tocco. L’IBAN si inserisce in “Le mie rate”.
             </Sezione>
             <Sezione icona="wallet-plus-outline" titolo="Conto spese">
               Aggiungi entrate e uscite con la fattura allegata. Il rendiconto annuale si scarica in Excel o PDF.
