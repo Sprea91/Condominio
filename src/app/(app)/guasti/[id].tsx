@@ -297,6 +297,77 @@ function Commenti({ guasto }: { guasto: Guasto }) {
   );
 }
 
+// Modifica di titolo e descrizione (chi l'ha segnalato o l'amministratore), togliere foto, eliminare il guasto
+function ModificaGuasto({ guasto, onFatto }: { guasto: Guasto; onFatto: (salvato: boolean) => void }) {
+  const [titolo, setTitolo] = useState(guasto.titolo);
+  const [descrizione, setDescrizione] = useState(guasto.descrizione);
+  const [inCorso, setInCorso] = useState(false);
+  const [errore, setErrore] = useState('');
+
+  async function salva() {
+    setErrore('');
+    if (!titolo.trim() || !descrizione.trim()) {
+      setErrore('Titolo e descrizione non possono essere vuoti.');
+      return;
+    }
+    setInCorso(true);
+    const { error } = await supabase
+      .from('guasti')
+      .update({ titolo: titolo.trim(), descrizione: descrizione.trim() })
+      .eq('id', guasto.id);
+    setInCorso(false);
+    if (error) setErrore(`Errore: ${error.message}`);
+    else onFatto(true);
+  }
+
+  async function togliFoto(f: { id: string; percorso: string }) {
+    setErrore('');
+    const { error } = await supabase.from('guasti_foto').delete().eq('id', f.id);
+    if (error) {
+      setErrore(`Errore: ${error.message}`);
+      return;
+    }
+    await eliminaFile('guasti', [f.percorso]);
+    onFatto(true);
+  }
+
+  return (
+    <Riquadro evidenziato>
+      <Text variant="titleSmall">Modifica segnalazione</Text>
+      <TextInput label="Titolo" mode="outlined" value={titolo} onChangeText={setTitolo} />
+      <TextInput
+        label="Descrizione"
+        mode="outlined"
+        value={descrizione}
+        onChangeText={setDescrizione}
+        multiline
+        numberOfLines={5}
+      />
+      {guasto.guasti_foto.length > 0 && (
+        <>
+          <Nota>Foto: tocca il cestino per toglierne una.</Nota>
+          {guasto.guasti_foto.map((f, i) => (
+            <View key={f.id} style={styles.rigaNota}>
+              <Icon source="image-outline" size={18} />
+              <Text variant="bodyMedium" style={styles.flex}>{`Foto ${i + 1}`}</Text>
+              <BottoneConferma etichetta="" conferma="Togli foto" onConferma={() => togliFoto(f)} />
+            </View>
+          ))}
+        </>
+      )}
+      <Errore testo={errore} />
+      <View style={styles.azioni}>
+        <Button onPress={() => onFatto(false)} disabled={inCorso}>
+          Annulla
+        </Button>
+        <Button mode="contained" onPress={salva} loading={inCorso} disabled={inCorso}>
+          Salva
+        </Button>
+      </View>
+    </Riquadro>
+  );
+}
+
 export default function DettaglioGuasto() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { profilo } = useAuth();
@@ -314,6 +385,7 @@ export default function DettaglioGuasto() {
   }, [id]);
   const { dati: g, errore, ricarica } = useDati(leggi);
   const { puo } = usePermessi();
+  const [modifica, setModifica] = useState(false);
 
   if (errore)
     return (
@@ -330,6 +402,13 @@ export default function DettaglioGuasto() {
 
   const s = stato(g.stato);
   const mio = g.autore_id === profilo?.id;
+
+  async function eliminaGuasto() {
+    const { error } = await supabase.from('guasti').delete().eq('id', g!.id);
+    if (error) return;
+    await eliminaFile('guasti', g!.guasti_foto.map((f) => f.percorso));
+    router.back();
+  }
 
   return (
     <Pagina titolo={g.titolo} sottotitolo={`Segnalato da ${autore(g.autore)}`}>
@@ -365,7 +444,25 @@ export default function DettaglioGuasto() {
         <Nota>
           Aperto il {dataOra(g.creato_il)} · {s.etichetta.toLowerCase()} dal {dataOra(g.aggiornato_il)}
         </Nota>
+        {(mio || admin) && !modifica && (
+          <View style={styles.azioni}>
+            <BottoneConferma etichetta="Elimina" conferma="Elimina segnalazione" onConferma={eliminaGuasto} />
+            <Button compact mode="outlined" icon="pencil-outline" onPress={() => setModifica(true)}>
+              Modifica
+            </Button>
+          </View>
+        )}
       </Riquadro>
+
+      {modifica && (
+        <ModificaGuasto
+          guasto={g}
+          onFatto={(salvato) => {
+            setModifica(false);
+            if (salvato) ricarica();
+          }}
+        />
+      )}
 
       {(g.guasti_foto.length > 0 || ((mio || admin) && g.stato !== 'chiuso')) && (
         <Riquadro>
@@ -377,7 +474,7 @@ export default function DettaglioGuasto() {
 
       <Commenti guasto={g} />
 
-      {puo('guasti_stato') && <AggiornaStato key={g.aggiornato_il} guasto={g} puoEliminare={admin} onSalvato={ricarica} />}
+      {puo('guasti_stato') && <AggiornaStato key={g.aggiornato_il} guasto={g} puoEliminare={false} onSalvato={ricarica} />}
 
       {/* key: quando il guasto viene aggiornato lo storico si ricarica */}
       <Storia key={g.aggiornato_il} guasto={g} />

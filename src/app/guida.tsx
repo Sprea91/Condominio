@@ -194,7 +194,7 @@ export default function Guida() {
         </Sezione>
         <Sezione icona="tools" titolo="Guasti">
           Hai notato un problema? Tocca “Segnala guasto”, descrivilo e aggiungi una foto. Puoi seguirne lo stato (aperto, in
-          lavorazione, risolto) e commentare, per esempio “anche da me”.
+          lavorazione, risolto) e commentare, per esempio “anche da me”. Chi l’ha segnalato può modificarlo o eliminarlo.
         </Sezione>
         <Sezione icona="vote-outline" titolo="Sondaggi">
           Vota le decisioni comuni. Prima di votare puoi aprire i documenti allegati (relazioni, preventivi in PDF). Alcuni si
