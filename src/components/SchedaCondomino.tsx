@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabase';
 import { useTinte } from '@/lib/tema';
 import type { Contatti, Profilo, Ruolo } from '@/lib/tipi';
 
+import { BottoneConferma } from './BottoneConferma';
 import { Errore, Etichetta, Nota, Riquadro } from './ui';
 
 type Props = {
@@ -75,6 +76,24 @@ export function SchedaCondomino({ profilo, contatti, sonoIo, onModificato }: Pro
       return;
     }
     setSalvato(true);
+    onModificato();
+  }
+
+  // Ex condòmino: non entra più, ma il suo storico resta (supabase/19-...sql)
+  async function disattiva() {
+    setErrore('');
+    const { error } = await supabase
+      .from('profili')
+      .update({ approvato: false, disattivato_il: new Date().toISOString() })
+      .eq('id', profilo.id);
+    if (error) {
+      setErrore(
+        error.code === 'PGRST204'
+          ? 'Funzione non ancora attiva: esegui supabase/19-ex-condomini.sql in Supabase.'
+          : `Errore: ${error.message}`,
+      );
+      return;
+    }
     onModificato();
   }
 
@@ -163,6 +182,9 @@ export function SchedaCondomino({ profilo, contatti, sonoIo, onModificato }: Pro
               Conferma rifiuto
             </Button>
           </>
+        )}
+        {!inAttesa && !sonoIo && (
+          <BottoneConferma etichetta="Disattiva" conferma="Disattiva (ex condòmino)" onConferma={disattiva} />
         )}
         {!confermaRifiuto && (
           <Button mode={inAttesa ? 'contained' : 'contained-tonal'} icon={inAttesa ? 'check' : undefined} onPress={salva} loading={inCorso} disabled={inCorso}>

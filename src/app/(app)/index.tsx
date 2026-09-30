@@ -122,7 +122,7 @@ export default function Home() {
       supabase.from('guasti').select('stato').neq('stato', 'chiuso'),
       supabase.from('sondaggi').select('id, domanda, chiuso, scadenza'),
       supabase.from('voti').select('sondaggio_id').eq('utente_id', id),
-      supabase.from('profili').select('id', { count: 'exact', head: true }).eq('approvato', false),
+      supabase.from('profili').select('*').eq('approvato', false),
       supabase
         .from('assemblee')
         .select('id, titolo, data_ora, luogo')
@@ -165,7 +165,8 @@ export default function Home() {
         )
         .sort((a, b) => a.scadenza!.localeCompare(b.scadenza!))
         .map((x) => ({ id: x.id, domanda: x.domanda, scadenza: x.scadenza!, votato: votati.has(x.id) })),
-      inAttesa: p.count ?? 0,
+      // "in attesa" = non approvati e non disattivati (gli ex condòmini hanno disattivato_il)
+      inAttesa: ((p.data ?? []) as { disattivato_il?: string | null }[]).filter((x) => !x.disattivato_il).length,
       prossimaAssemblea: asm.error ? null : (asm.data?.[0] ?? null),
       miaRisposta: null,
       rateDaPagare: { totale: 0, inRitardo: 0, prossima: null },

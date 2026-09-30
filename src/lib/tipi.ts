@@ -11,6 +11,7 @@ export type Profilo = {
   millesimi: number;
   ruolo: Ruolo;
   approvato: boolean;
+  disattivato_il?: string | null; // ex condòmino (supabase/19-...sql)
 };
 
 // Nome e appartamento di chi ha scritto qualcosa (letti con una "join" su profili)

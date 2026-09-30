@@ -7,6 +7,7 @@ import { ActivityIndicator, Icon, Text } from 'react-native-paper';
 import { PannelloPermessi } from '@/components/PannelloPermessi';
 import { Pagina } from '@/components/Pagina';
 import { SchedaCondomino } from '@/components/SchedaCondomino';
+import { SchedaExCondomino } from '@/components/SchedaExCondomino';
 import { Errore, Nota, Riquadro, Titoletto } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { millesimi as millesimiFmt } from '@/lib/formato';
@@ -49,8 +50,9 @@ export default function Condomini() {
     ricaricaProfilo(); // se ho modificato me stesso, aggiorna anche la Home
   }
 
-  const inAttesa = profili?.filter((p) => !p.approvato) ?? [];
+  const inAttesa = profili?.filter((p) => !p.approvato && !p.disattivato_il) ?? [];
   const attivi = profili?.filter((p) => p.approvato) ?? [];
+  const ex = profili?.filter((p) => !p.approvato && !!p.disattivato_il) ?? [];
   const totaleMillesimi = attivi.reduce((somma, p) => somma + Number(p.millesimi), 0);
   const totaleOk = Math.abs(totaleMillesimi - 1000) < 0.001;
 
@@ -88,6 +90,15 @@ export default function Condomini() {
           {attivi.map((p) => (
             <SchedaCondomino key={p.id} profilo={p} sonoIo={p.id === io?.id} contatti={contatti.get(p.id)} onModificato={dopoModifica} />
           ))}
+
+          {ex.length > 0 && (
+            <>
+              <Titoletto>{`Ex condòmini (${ex.length})`}</Titoletto>
+              {ex.map((p) => (
+                <SchedaExCondomino key={p.id} profilo={p} onModificato={dopoModifica} />
+              ))}
+            </>
+          )}
 
           <PannelloPermessi />
         </>

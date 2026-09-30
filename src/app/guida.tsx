@@ -247,7 +247,9 @@ export default function Guida() {
           <Capitolo titolo="Cosa puoi fare in più" icona="shield-crown-outline">
             <Sezione icona="account-group-outline" titolo="Gestione condòmini">
               Dalla Home. Approvi le registrazioni (assegnando appartamento e millesimi), vedi cellulari e contatti di
-              emergenza, nomini altri amministratori. In fondo c’è il pannello Permessi.
+              emergenza, nomini altri amministratori. Chi lascia il condominio lo “Disattivi”: non entra più ma il suo storico
+              (voti, rate, presenze) resta; tra gli “Ex condòmini” puoi riattivarlo o, solo per account di prova, eliminarlo
+              definitivamente. In fondo c’è il pannello Permessi.
             </Sezione>
             <Sezione icona="toggle-switch-outline" titolo="Permessi">
               Decidi quali azioni possono fare tutti: stato dei guasti, numeri utili, documenti, storico lavori, scadenze.

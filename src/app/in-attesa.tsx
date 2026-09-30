@@ -30,6 +30,20 @@ export default function InAttesa() {
     setInCorso(false);
   }
 
+  if (profilo?.disattivato_il) {
+    return (
+      <Benvenuto titolo="Account disattivato">
+        <Text variant="bodyMedium">
+          L’amministratore ha disattivato il tuo account (per esempio perché non abiti più nel condominio). Se pensi sia un
+          errore, contattalo.
+        </Text>
+        <Button mode="text" onPress={esci}>
+          Esci
+        </Button>
+      </Benvenuto>
+    );
+  }
+
   return (
     <Benvenuto titolo="Quasi fatto!" testo={`Ciao${profilo?.nome ? ` ${profilo.nome}` : ''}, la tua registrazione è arrivata.`}>
       <Text variant="bodyMedium">
