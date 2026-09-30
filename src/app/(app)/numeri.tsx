@@ -2,7 +2,7 @@
 // Un tocco sul numero avvia la chiamata. L'amministratore li aggiunge ed elimina.
 import { useCallback, useState } from 'react';
 import { Linking, StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Button, Chip, IconButton, Text, TextInput, useTheme } from 'react-native-paper';
+import { ActivityIndicator, Button, Chip, IconButton, Text, TextInput } from 'react-native-paper';
 
 import { BottoneConferma } from '@/components/BottoneConferma';
 import { CampoRicerca, corrisponde } from '@/components/CampoRicerca';
@@ -111,7 +111,6 @@ function NuovoNumero({
 
 export default function Numeri() {
   const { profilo } = useAuth();
-  const tema = useTheme();
   const tinte = useTinte();
   const admin = profilo?.ruolo === 'amministratore';
   const { puo } = usePermessi();
@@ -148,35 +147,40 @@ export default function Numeri() {
       );
     }
     return (
-      <Riquadro style={styles.riga}>
-        <IconaTonda icona={iconaCategoria(n.categoria)} tinta={n.categoria === 'Emergenze' ? tinte.rosso : tinte.blu} dimensione={40} />
-        <View style={styles.flex}>
-          <Text variant="titleMedium">{n.nome}</Text>
-          {!!n.telefono && <Text variant="bodyMedium">{n.telefono}</Text>}
-          {!!n.note && <Nota>{n.note}</Nota>}
+      <Riquadro>
+        {/* Riga 1: icona, nome, telefono e note (tutto lo spazio al testo) */}
+        <View style={styles.riga}>
+          <IconaTonda icona={iconaCategoria(n.categoria)} tinta={n.categoria === 'Emergenze' ? tinte.rosso : tinte.blu} dimensione={40} />
+          <View style={styles.flex}>
+            <Text variant="titleMedium">{n.nome}</Text>
+            {!!n.telefono && <Text variant="bodyMedium">{n.telefono}</Text>}
+            {!!n.email && <Nota>{n.email}</Nota>}
+            {!!n.note && <Nota>{n.note}</Nota>}
+          </View>
         </View>
-        {!!n.email && (
-          <IconButton
-            icon="email-outline"
-            mode="contained-tonal"
-            onPress={() => Linking.openURL(`mailto:${n.email}`)}
-            accessibilityLabel={`Scrivi a ${n.nome}`}
-          />
-        )}
-        {!!n.telefono && (
-          <IconButton
-            icon="phone"
-            mode="contained"
-            iconColor={tema.colors.onPrimary}
-            containerColor={tema.colors.primary}
-            onPress={() => Linking.openURL(`tel:${n.telefono!.replace(/\s/g, '')}`)}
-            accessibilityLabel={`Chiama ${n.nome}`}
-          />
-        )}
-        {puo('numeri') && (
-          <IconButton icon="pencil-outline" onPress={() => setInModifica(n.id)} accessibilityLabel={`Modifica ${n.nome}`} />
-        )}
-        {(admin || n.autore_id === profilo?.id) && <BottoneConferma etichetta="" conferma="Elimina" onConferma={() => elimina(n)} />}
+        {/* Riga 2: pulsanti */}
+        <View style={styles.pulsanti}>
+          {(admin || n.autore_id === profilo?.id) && <BottoneConferma etichetta="" conferma="Elimina" onConferma={() => elimina(n)} />}
+          {puo('numeri') && (
+            <IconButton icon="pencil-outline" onPress={() => setInModifica(n.id)} accessibilityLabel={`Modifica ${n.nome}`} />
+          )}
+          {!!n.email && (
+            <Button compact mode="contained-tonal" icon="email-outline" onPress={() => Linking.openURL(`mailto:${n.email}`)}>
+              Scrivi
+            </Button>
+          )}
+          {!!n.telefono && (
+            <Button
+              compact
+              mode="contained"
+              icon="phone"
+              onPress={() => Linking.openURL(`tel:${n.telefono!.replace(/\s/g, '')}`)}
+              accessibilityLabel={`Chiama ${n.nome}`}
+            >
+              Chiama
+            </Button>
+          )}
+        </View>
       </Riquadro>
     );
   }
@@ -224,6 +228,7 @@ const styles = StyleSheet.create({
   chip: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   azioni: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
   riga: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  pulsanti: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap', gap: 6 },
   flex: { flex: 1, gap: 2 },
   gruppo: { gap: 12 },
 });
