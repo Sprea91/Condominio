@@ -9,6 +9,7 @@ import { Button, Checkbox, Text, TextInput, useTheme } from 'react-native-paper'
 import { Benvenuto, CampoPassword } from '@/components/Benvenuto';
 import { Errore } from '@/components/ui';
 import { messaggioErrore } from '@/lib/errori';
+import { INDIRIZZO_SITO } from '@/lib/recupero';
 import { supabase } from '@/lib/supabase';
 
 export default function Registrati() {
@@ -50,6 +51,8 @@ export default function Registrati() {
       // Questi dati li salva il database in automatico (funzione crea_profilo in supabase/05-...sql);
       // cellulare ed emergenza finiscono nella tabella riservata che vede solo l'amministratore
       options: {
+        // dopo la conferma dell'email si torna sull'app (deve essere tra i "Redirect URLs" di Supabase)
+        emailRedirectTo: INDIRIZZO_SITO,
         data: {
           nome: nome.trim(),
           appartamento: appartamento.trim(),

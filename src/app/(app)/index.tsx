@@ -219,6 +219,17 @@ export default function Home() {
         </Text>
       </Pressable>
 
+      {/* Richieste da approvare (solo amministratore) */}
+      {admin && !!dati?.inAttesa && (
+        <Riquadro onPress={() => router.push('/condomini')} style={[styles.rigaAvviso, { backgroundColor: tinte.arancio.sfondo, borderColor: tinte.arancio.sfondo }]}>
+          <Icon source="account-clock-outline" size={22} color={tinte.arancio.testo} />
+          <Text variant="titleSmall" style={[styles.flex, { color: tinte.arancio.testo }]}>
+            {dati.inAttesa === 1 ? '1 registrazione da approvare' : `${dati.inAttesa} registrazioni da approvare`}
+          </Text>
+          <Icon source="chevron-right" size={20} color={tinte.arancio.testo} />
+        </Riquadro>
+      )}
+
       {/* Prossimi appuntamenti (dagli avvisi con giorno e ora) */}
       {dati?.appuntamenti.map((a) => (
         <Riquadro
@@ -392,16 +403,6 @@ export default function Home() {
         onPress={() => router.push('/spese')}
       />
 
-      {/* Richieste da approvare (solo amministratore) */}
-      {admin && !!dati?.inAttesa && (
-        <Riquadro onPress={() => router.push('/condomini')} style={[styles.rigaAvviso, { backgroundColor: tinte.arancio.sfondo, borderColor: tinte.arancio.sfondo }]}>
-          <Icon source="account-clock-outline" size={22} color={tinte.arancio.testo} />
-          <Text variant="titleSmall" style={[styles.flex, { color: tinte.arancio.testo }]}>
-            {dati.inAttesa === 1 ? '1 registrazione da approvare' : `${dati.inAttesa} registrazioni da approvare`}
-          </Text>
-          <Icon source="chevron-right" size={20} color={tinte.arancio.testo} />
-        </Riquadro>
-      )}
 
       {/* Sezioni */}
       <View style={styles.griglia}>
