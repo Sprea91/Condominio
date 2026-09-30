@@ -395,6 +395,25 @@ export default function DettaglioRata() {
     }
   }
 
+  // Toglie un condòmino da questa rata (solo se non ha pagato): il totale diminuisce
+  async function togliDallaRata(r: Rata) {
+    setErroreAzione('');
+    setInCorso(r.id);
+    try {
+      const { error } = await supabase.from('rate').delete().eq('id', r.id);
+      if (error) throw new Error(error.message);
+      if (r.ricevuta_path) await eliminaFile('ricevute', [r.ricevuta_path]);
+      const nuovoTotale = Math.max(0, Math.round((Number(e.totale) - Number(r.importo)) * 100) / 100);
+      const { error: et } = await supabase.from('rate_emissioni').update({ totale: nuovoTotale }).eq('id', e.id);
+      if (et) throw new Error(et.message);
+      await ricarica();
+    } catch (err) {
+      setErroreAzione(`Errore: ${(err as Error).message}`);
+    } finally {
+      setInCorso(null);
+    }
+  }
+
   async function elimina() {
     await supabase.from('rate_emissioni').delete().eq('id', e.id);
     router.back();
@@ -480,7 +499,7 @@ export default function DettaglioRata() {
           {g.elenco.map((r) => {
         const s = statoRata({ pagata_il: r.pagata_il, segnalata_il: r.segnalata_il, scadenza: e.scadenza });
         return (
-          <Riquadro key={r.id} style={styles.riga}>
+          <Riquadro key={r.id} style={[styles.riga, styles.aCapo]}>
             <View style={styles.flex}>
               <Text variant="titleSmall">{nomeCondomino(r)}</Text>
               <View style={styles.etichetta}>
@@ -504,10 +523,13 @@ export default function DettaglioRata() {
                 Annulla
               </Button>
             ) : (
-              // anche senza segnalazione (es. pagato in contanti) l'amministratore può segnarla pagata
-              <Button compact mode="outlined" onPress={() => segnaPagata(r)} loading={inCorso === r.id} disabled={!!inCorso}>
-                Pagata
-              </Button>
+              <>
+                {/* anche senza segnalazione (es. pagato in contanti) l'amministratore può segnarla pagata */}
+                <Button compact mode="outlined" onPress={() => segnaPagata(r)} loading={inCorso === r.id} disabled={!!inCorso}>
+                  Pagata
+                </Button>
+                <BottoneConferma etichetta="" conferma="Togli dalla rata" onConferma={() => togliDallaRata(r)} />
+              </>
             )}
           </Riquadro>
         );
@@ -536,6 +558,7 @@ const styles = StyleSheet.create({
   etichetta: { flexDirection: 'row', marginTop: 4 },
   azioni: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   sinistra: { alignSelf: 'flex-start' },
+  aCapo: { flexWrap: 'wrap' },
   gruppo: { gap: 12 },
   rigaImporto: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingBottom: 8, borderBottomWidth: 1 },
   importo: { width: 110 },
